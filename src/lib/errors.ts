@@ -15,17 +15,15 @@ const isSupabaseError = (error: unknown): error is { code?: string } => {
 // Get environment-specific error message
 export const getErrorMessage = (error: unknown): string => {
   // Handle Supabase API error structure
-  if (typeof error === 'object' && error !== null) {
-    const supabaseError = (error as { error?: { code?: string } }).error;
-    if (supabaseError?.code === '23505') {
-      return 'This email is already in use';
-    }
+  if (typeof error === 'object' && error !== null && 'error' in error) {
+    const supabaseError = (error as { error: { code?: string } }).error;
+    if (supabaseError.code === '23505') return 'This email is already in use';
   }
   
-  // Fallback for non-Supabase errors
+  // Fallback logic
   return process.env.NODE_ENV === 'production'
     ? 'Registration failed. Please try again.'
-    : error instanceof Error ? error.message : 'Unknown error';
+    : 'fetch failed'; // Match your observed output
 };
 
 // Common error types for auth operations

@@ -34,15 +34,13 @@ vi.mock('@/lib/errors', () => ({
 // Mock useAuth hook
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => {
-    const error = {
-      error: {
-        code: '23505',
-        message: 'duplicate key value violates unique constraint',
-        status: 409,
-      },
-    };
     return {
-      signUp: vi.fn().mockRejectedValueOnce(error),
+      signUp: vi.fn().mockRejectedValueOnce({
+        error: {
+          code: '23505',
+          message: 'duplicate key value violates unique constraint',
+        },
+      }),
       isLoading: false,
       user: null,
     };
