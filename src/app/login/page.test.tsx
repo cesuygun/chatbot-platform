@@ -5,7 +5,6 @@ import { vi } from 'vitest';
 import { useRouter } from 'next/navigation';
 import { AuthProvider } from '@/contexts/auth/AuthProvider';
 import LoginPage from './page';
-import { User } from '@supabase/supabase-js';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
