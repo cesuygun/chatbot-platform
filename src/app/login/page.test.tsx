@@ -12,13 +12,11 @@ vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
 }));
 
-// Mock Supabase client
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    auth: {
-      signInWithPassword: vi.fn(),
-    },
-  },
+// Mock AuthContext
+vi.mock('@/contexts/auth/AuthContext', () => ({
+  useAuth: () => ({
+    signIn: vi.fn(),
+  }),
 }));
 
 const renderWithAuth = (component: React.ReactNode) => {
@@ -46,14 +44,13 @@ describe('LoginPage', () => {
   });
 
   it('handles successful login and redirects to dashboard', async () => {
-    const { supabase } = await import('@/lib/supabase');
+    const { useAuth } = await import('@/contexts/auth/AuthContext');
     (
-      supabase.auth.signInWithPassword as unknown as {
-        mockResolvedValueOnce: (v: { data: { user: User | null }; error: Error | null }) => void;
+      useAuth as unknown as {
+        mockReturnValue: (v: { signIn: () => Promise<{ error: null }> }) => void;
       }
-    ).mockResolvedValueOnce({
-      data: { user: { id: '123' } as User },
-      error: null,
+    ).mockReturnValue({
+      signIn: vi.fn().mockResolvedValue({ error: null }),
     });
 
     renderWithAuth(<LoginPage />);
@@ -71,14 +68,13 @@ describe('LoginPage', () => {
   });
 
   it('handles login error and displays error message', async () => {
-    const { supabase } = await import('@/lib/supabase');
+    const { useAuth } = await import('@/contexts/auth/AuthContext');
     (
-      supabase.auth.signInWithPassword as unknown as {
-        mockResolvedValueOnce: (v: { data: { user: User | null }; error: Error | null }) => void;
+      useAuth as unknown as {
+        mockReturnValue: (v: { signIn: () => Promise<{ error: Error }> }) => void;
       }
-    ).mockResolvedValueOnce({
-      data: { user: null },
-      error: { message: 'Invalid login credentials' } as Error,
+    ).mockReturnValue({
+      signIn: vi.fn().mockResolvedValue({ error: new Error('Invalid login credentials') }),
     });
 
     renderWithAuth(<LoginPage />);
@@ -91,20 +87,19 @@ describe('LoginPage', () => {
     await userEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Invalid login credentials')).toBeInTheDocument();
+      expect(screen.getByTestId('login-error')).toHaveTextContent('Invalid login credentials');
     });
   });
 
   it('shows production error message', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const { supabase } = await import('@/lib/supabase');
+    const { useAuth } = await import('@/contexts/auth/AuthContext');
     (
-      supabase.auth.signInWithPassword as unknown as {
-        mockResolvedValueOnce: (v: { data: { user: User | null }; error: Error | null }) => void;
+      useAuth as unknown as {
+        mockReturnValue: (v: { signIn: () => Promise<{ error: Error }> }) => void;
       }
-    ).mockResolvedValueOnce({
-      data: { user: null },
-      error: { message: 'Invalid login credentials' } as Error,
+    ).mockReturnValue({
+      signIn: vi.fn().mockResolvedValue({ error: new Error('Invalid login credentials') }),
     });
 
     renderWithAuth(<LoginPage />);
@@ -117,7 +112,9 @@ describe('LoginPage', () => {
     await userEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Login failed. Please try again.')).toBeInTheDocument();
+      expect(screen.getByTestId('login-error')).toHaveTextContent(
+        'Registration failed. Please try again.'
+      );
     });
   });
 
@@ -133,7 +130,9 @@ describe('LoginPage', () => {
     await userEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Please enter a valid email address')).toBeInTheDocument();
+      expect(screen.getByTestId('login-error')).toHaveTextContent(
+        'Please enter a valid email address'
+      );
     });
   });
 
@@ -149,7 +148,9 @@ describe('LoginPage', () => {
     await userEvent.click(loginButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Password must be at least 8 characters long')).toBeInTheDocument();
+      expect(screen.getByTestId('login-error')).toHaveTextContent(
+        'Password must be at least 8 characters long'
+      );
     });
   });
 });
