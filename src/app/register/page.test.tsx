@@ -250,9 +250,29 @@ describe('RegisterPage', () => {
     // Debug DOM state
     screen.debug();
 
-    await waitFor(() => {
-      expect(screen.getByText('This email is already in use')).toBeInTheDocument();
+    const duplicateError = await screen.findByText('This email is already in use', {
+      exact: false,
     });
+    await waitFor(() => {
+      expect(duplicateError).toBeInTheDocument();
+    });
+  });
+
+  it('shows error on duplicate email after triggering submission', async () => {
+    renderWithAuth(<RegisterPage />);
+
+    await userEvent.type(screen.getByLabelText('Email'), 'test@exists.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'password123');
+    await userEvent.type(screen.getByLabelText('Confirm Password'), 'password123');
+    await userEvent.click(screen.getByRole('button', { name: /register/i }));
+
+    // Debug DOM state
+    screen.debug();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('registration-error')).toBeInTheDocument();
+    });
+    console.log('Rendered error:', screen.getByTestId('registration-error').textContent);
   });
 });
 

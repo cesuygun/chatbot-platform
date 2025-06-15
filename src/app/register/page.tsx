@@ -46,7 +46,11 @@ const RegisterPage = () => {
         router.push('/login');
       }, 3000);
     } catch (err) {
-      console.error('Registration error:', err); // Debug line
+      console.log('Error object structure:', {
+        isError: err instanceof Error,
+        code: (err as { code?: string }).code,
+        message: err instanceof Error ? err.message : String(err),
+      });
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
@@ -92,7 +96,7 @@ const RegisterPage = () => {
                 required
               />
             </div>
-            {error && <div className="text-red-500 text-sm">{error}</div>}
+            {error && <div data-testid="registration-error">{error}</div>}
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
