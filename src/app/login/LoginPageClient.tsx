@@ -70,7 +70,7 @@ const LoginPageClient = () => {
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -79,6 +79,8 @@ const LoginPageClient = () => {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                data-testid="email-input"
+                aria-label="Email"
               />
             </div>
             <div className="space-y-2">
@@ -89,22 +91,35 @@ const LoginPageClient = () => {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
+                data-testid="password-input"
+                aria-label="Password"
               />
             </div>
             {error && (
-              <div data-testid="login-error" className="text-red-500">
+              <div data-testid="login-error" className="text-red-500" role="alert">
                 {error}
               </div>
             )}
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button type="submit" className="w-full" disabled={loading} onClick={handleSubmit}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
+            onClick={handleSubmit}
+            data-testid="login-button"
+            aria-label={loading ? 'Loading...' : 'Login'}
+          >
             {loading ? 'Loading...' : 'Login'}
           </Button>
           <div className="text-center text-sm">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-blue-500 hover:underline">
+            <Link
+              href="/register"
+              className="text-blue-500 hover:underline"
+              data-testid="register-link"
+            >
               Register
             </Link>
           </div>

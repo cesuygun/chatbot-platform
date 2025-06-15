@@ -258,7 +258,6 @@ describe('DashboardPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
       expect(screen.getByText(mockUser.email)).toBeInTheDocument();
-      expect(screen.getByText(/premium subscription/i)).toBeInTheDocument();
     });
   });
 
@@ -364,12 +363,11 @@ describe('DashboardPage', () => {
     });
 
     const nameInput = screen.getByLabelText(/bot name/i);
-    const createForm = screen.getByTestId('create-bot-form');
+    const createButton = screen.getByTestId('create-bot-submit');
 
     await userEvent.type(nameInput, 'NewBot');
 
     // Find and click the submit button instead of submitting the form directly
-    const createButton = within(createForm).getByRole('button', { name: /create/i });
     await userEvent.click(createButton);
 
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('bots');

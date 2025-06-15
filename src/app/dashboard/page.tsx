@@ -18,19 +18,19 @@ interface Bot {
   id: string;
   name: string;
 }
-interface UserProfile {
-  subscribed: boolean;
-}
 interface User {
   id: string;
   email?: string;
+  user_metadata?: {
+    full_name?: string;
+    subscribed?: boolean;
+  };
 }
 
 const DashboardPage = () => {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [bots, setBots] = useState<Bot[]>([]);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
   const initializationRef = useRef(false);
   const [authChecked, setAuthChecked] = useState(false);
@@ -75,15 +75,13 @@ const DashboardPage = () => {
 
         // First check if the users table exists
         try {
-          const { data: profileData, error: profileError } = await client
+          const { error: profileError } = await client
             .from(USERS_TABLE)
             .select('subscribed')
             .eq('id', user.id)
             .single();
 
-          if (!profileError) {
-            setUserProfile(profileData);
-          } else if (profileError.code === '42P01') {
+          if (profileError && profileError.code === '42P01') {
             // Table doesn't exist
             console.error(
               "Users table doesn't exist. Please create it with the SQL script provided."
@@ -140,7 +138,6 @@ const DashboardPage = () => {
       // Clear local state
       setUser(null);
       setBots([]);
-      setUserProfile(null);
       // Redirect to login page
       router.push('/login');
     } catch (error) {
@@ -243,109 +240,122 @@ const DashboardPage = () => {
     }
   };
 
-  const handleSubscription = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!user?.id) {
-      console.error('User ID is required for subscription');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ user_id: user.id }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('Subscription error:', data.error);
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error('Error initiating subscription:', error);
-    }
-  };
-
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-2xl bg-white p-8 rounded shadow">
-        <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-        <p className="mb-4">
-          Welcome, <span className="font-mono">{user?.email ?? 'No email'}</span>
-        </p>
-        <form onSubmit={handleLogout} data-testid="logout-form">
-          <Button type="submit" variant="destructive">
-            Logout
-          </Button>
-        </form>
-        <Card className="mb-8">
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold" data-testid="dashboard-title">
+          Dashboard
+        </h1>
+        <div>
+          {user?.email && (
+            <span className="mr-4" data-testid="user-email">
+              {user.email}
+            </span>
+          )}
+          <form onSubmit={handleLogout} data-testid="logout-form">
+            <Button type="submit" data-testid="logout-button">
+              Logout
+            </Button>
+          </form>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Bots</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold" data-testid="total-bots">
+              {bots.length}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Subscription Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-3xl font-bold" data-testid="subscription-status">
+                {user?.user_metadata?.subscribed ? 'Active' : 'Inactive'}
+              </p>
+              {user?.user_metadata?.subscribed ? (
+                <p className="text-green-600 font-semibold" data-testid="premium-subscription">
+                  Premium Subscription
+                </p>
+              ) : (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Upgrade to Premium Subscription
+                  </p>
+                  <Button onClick={() => router.push('/pricing')} data-testid="subscribe-button">
+                    Subscribe
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
           <CardHeader>
             <CardTitle>Create New Bot</CardTitle>
           </CardHeader>
           <CardContent>
-            <form
-              onSubmit={handleCreateBot}
-              className="flex gap-2 items-end"
-              data-testid="create-bot-form"
-            >
-              <div className="flex-1">
-                <Label htmlFor="name">Bot Name</Label>
-                <Input id="name" name="name" required placeholder="e.g. SupportBot" />
+            <form onSubmit={handleCreateBot} data-testid="create-bot-form">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Bot Name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    placeholder="Enter bot name"
+                    required
+                    data-testid="bot-name-input"
+                  />
+                </div>
+                <Button type="submit" data-testid="create-bot-submit">
+                  Create Bot
+                </Button>
               </div>
-              <Button type="submit">Create</Button>
             </form>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Your Bots</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-4">
-              {bots && bots.length > 0 ? (
+            <div className="space-y-4" data-testid="bots-list">
+              {bots.length === 0 ? (
+                <p>No bots created yet</p>
+              ) : (
                 bots.map(bot => (
-                  <li key={bot.id} className="flex items-center justify-between">
-                    <span>{bot.name}</span>
+                  <div
+                    key={bot.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                    data-testid={`bot-item-${bot.id}`}
+                  >
+                    <span data-testid={`bot-name-${bot.id}`}>{bot.name}</span>
                     <form onSubmit={handleDeleteBot} data-testid="delete-bot-form">
                       <input type="hidden" name="id" value={bot.id} />
-                      <Button type="submit" variant="destructive" size="sm">
+                      <Button
+                        type="submit"
+                        variant="destructive"
+                        data-testid={`delete-bot-button-${bot.id}`}
+                      >
                         Delete
                       </Button>
                     </form>
-                  </li>
+                  </div>
                 ))
-              ) : (
-                <li>No bots found.</li>
-              )}
-            </ul>
-          </CardContent>
-        </Card>
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Subscription</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-2">
-              <span className="font-semibold">Status:</span>{' '}
-              {userProfile?.subscribed ? (
-                <span className="text-green-600">Premium Subscription</span>
-              ) : (
-                <span className="text-gray-500">Free Plan</span>
               )}
             </div>
-            <form onSubmit={handleSubscription} data-testid="subscription-form">
-              <Button type="submit" disabled={!user?.id}>
-                Subscribe / Manage Billing
-              </Button>
-            </form>
           </CardContent>
         </Card>
       </div>

@@ -17,6 +17,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:quick": "tsx scripts/test-e2e.ts",
     "test:pipeline": "tsx scripts/test-pipeline.ts",
+    "test:pipeline:local": "tsx scripts/local-pipeline.ts",
     "format": "prettier --write .",
     "prepare": "husky install",
     "test:api": "vitest run src/app/api/**/*.test.ts",
