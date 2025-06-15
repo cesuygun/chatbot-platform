@@ -132,7 +132,7 @@ export const ChatbotForm = ({ onSuccess, onError }: ChatbotFormProps) => {
       setFormErrors({});
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to create chatbot');
-      setError(error.message);
+      setError(error.message || String(error));
       onError?.(error);
     } finally {
       setIsLoading(false);

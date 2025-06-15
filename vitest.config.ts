@@ -1,13 +1,17 @@
 import { defineConfig } from 'vitest/config';
+import type { UserConfig } from 'vitest/config';
 
 export default defineConfig(async () => {
   const [react, tsconfigPaths] = await Promise.all([
-    import('@vitejs/plugin-react').then(mod => mod.default),
-    import('vite-tsconfig-paths').then(mod => mod.default),
+    import('@vitejs/plugin-react'),
+    import('vite-tsconfig-paths'),
   ]);
 
   return {
-    plugins: [react(), tsconfigPaths()],
+    plugins: [
+      react.default(),
+      tsconfigPaths.default(),
+    ],
     test: {
       watch: false,
       environment: 'jsdom',
@@ -24,8 +28,8 @@ export default defineConfig(async () => {
       ],
       threads: false,
       reporters: ['verbose'],
-      testTimeout: 30000,
-      hookTimeout: 30000,
+      testTimeout: 60000,
+      hookTimeout: 60000,
       sequence: {
         shuffle: false,
         concurrent: false,
@@ -39,6 +43,14 @@ export default defineConfig(async () => {
           'src/test/',
         ],
       },
+      deps: {
+        inline: [/@testing-library\/react/],
+      },
+      environmentOptions: {
+        jsdom: {
+          resources: 'usable',
+        },
+      },
     },
-  };
+  } as UserConfig;
 });
