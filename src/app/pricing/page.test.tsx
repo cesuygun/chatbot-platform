@@ -20,10 +20,26 @@ vi.mock('@/contexts/auth/AuthContext', () => ({
   }),
 }));
 
+// Mock window.location
+const mockLocation = {
+  href: '',
+  assign: vi.fn(),
+  replace: vi.fn(),
+};
+
+Object.defineProperty(window, 'location', {
+  value: mockLocation,
+  writable: true,
+});
+
 describe('PricingPage', () => {
   const renderWithAuth = (component: React.ReactNode) => {
     return render(<AuthProvider>{component}</AuthProvider>);
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('renders all pricing plans', () => {
     renderWithAuth(<PricingPage />);
@@ -66,5 +82,19 @@ describe('PricingPage', () => {
     expect(screen.getByText('1 Chatbot')).toBeInTheDocument();
     expect(screen.getByText('5 Chatbots')).toBeInTheDocument();
     expect(screen.getByText('Unlimited Chatbots')).toBeInTheDocument();
+  });
+
+  it('redirects to login when clicking on a plan without being logged in', async () => {
+    renderWithAuth(<PricingPage />);
+    const getStartedButton = screen.getByText('Get Started');
+    fireEvent.click(getStartedButton);
+    expect(window.location.href).toBe('/login?redirectTo=/pricing');
+  });
+
+  it('opens email client for enterprise plan', () => {
+    renderWithAuth(<PricingPage />);
+    const contactSalesButton = screen.getByText('Contact Sales');
+    fireEvent.click(contactSalesButton);
+    expect(window.location.href).toBe('mailto:sales@example.com');
   });
 });
