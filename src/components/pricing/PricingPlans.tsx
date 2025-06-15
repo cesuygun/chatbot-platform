@@ -195,9 +195,17 @@ export function PricingPlans() {
               <Button
                 className="w-full"
                 variant={plan.id === 'pro' ? 'default' : 'outline'}
-                onClick={() => handleSubscribe(plan.id)}
+                onClick={() => {
+                  if (plan.id === 'enterprise') {
+                    window.location.href = 'mailto:sales@example.com';
+                  } else {
+                    handleSubscribe(plan.id);
+                  }
+                }}
               >
-                {plan.id === 'free' ? 'Get Started' : 'Upgrade'}
+                {plan.id === 'free' && 'Get Started'}
+                {plan.id === 'pro' && 'Start Free Trial'}
+                {plan.id === 'enterprise' && 'Contact Sales'}
               </Button>
             </CardFooter>
           </Card>

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
 
@@ -16,4 +17,4 @@ export const getSupabase = () => {
   return supabaseInstance;
 };
 
-export type User = Awaited<ReturnType<typeof getSupabase>['auth']['getUser']>['data']['user'];
+export type User = SupabaseUser;

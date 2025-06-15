@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const subscriptionData = {
       id: subscription.id,
       status: subscription.status,
-      current_period_end: subscription.current_period_end,
+      current_period_end: subscription.items.data[0].current_period_end,
       cancel_at_period_end: subscription.cancel_at_period_end,
       plan: {
         name: price.nickname || 'Unknown Plan',

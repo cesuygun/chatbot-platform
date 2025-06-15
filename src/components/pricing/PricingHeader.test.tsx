@@ -1,5 +1,6 @@
+import { describe, it, expect } from 'vitest';
+import { PricingHeader } from './PricingHeader';
 import { render, screen } from '@testing-library/react';
-import PricingHeader from './PricingHeader';
 
 describe('PricingHeader', () => {
   it('renders the title and subtitle', () => {

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   }
 
   const stripe = new Stripe(secretKey, {
-    apiVersion: '2023-10-16' as unknown as Stripe.LatestApiVersion,
+    apiVersion: '2025-05-28.basil',
   });
 
   let user_id: string | null = null;

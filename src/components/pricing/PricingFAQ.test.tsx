@@ -1,5 +1,6 @@
+import { describe, it, expect } from 'vitest';
+import { PricingFAQ } from './PricingFAQ';
 import { render, screen } from '@testing-library/react';
-import PricingFAQ from './PricingFAQ';
 
 describe('PricingFAQ', () => {
   it('renders FAQ questions and answers', () => {

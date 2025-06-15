@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2025-05-28.basil',
 });
 
 // Initialize Supabase client
@@ -19,7 +19,8 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   const body = await req.text();
-  const signature = headers().get('stripe-signature')!;
+  const headersList = await headers();
+  const signature = headersList.get('stripe-signature')!;
 
   try {
     const event = stripe.webhooks.constructEvent(
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
           .from('subscriptions')
           .update({
             status: subscription.status,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_end: new Date(subscription.items.data[0].current_period_end * 1000).toISOString(),
           })
           .eq('stripe_subscription_id', subscription.id);
 
