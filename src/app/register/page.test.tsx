@@ -31,6 +31,19 @@ vi.mock('@/lib/errors', () => ({
   }),
 }));
 
+// Mock useAuth hook
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    signUp: vi.fn().mockRejectedValue({
+      code: '23505',
+      message: 'duplicate key value violates unique constraint',
+      status: 409,
+    }),
+    isLoading: false,
+    user: null,
+  }),
+}));
+
 describe('RegisterPage', () => {
   const mockRouter = {
     push: vi.fn(),
@@ -224,29 +237,15 @@ describe('RegisterPage', () => {
   });
 
   it('shows error on duplicate email', async () => {
-    const mockSupabaseClient = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-          error: null,
-        }),
-        signUp: vi.fn().mockRejectedValue({
-          code: '23505',
-          message: 'duplicate key value violates unique constraint',
-          status: 409,
-        }),
-      },
-    };
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
-      mockSupabaseClient
-    );
-
     renderWithAuth(<RegisterPage />);
 
     await userEvent.type(screen.getByLabelText('Email'), 'test@exists.com');
     await userEvent.type(screen.getByLabelText('Password'), 'password123');
     await userEvent.type(screen.getByLabelText('Confirm Password'), 'password123');
     await userEvent.click(screen.getByRole('button', { name: /register/i }));
+
+    // Debug DOM state
+    screen.debug();
 
     await waitFor(() => {
       expect(screen.getByText('This email is already in use')).toBeInTheDocument();
@@ -257,22 +256,6 @@ describe('RegisterPage', () => {
 describe('Register Page - Production Mode', () => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'production');
-    const mockSupabaseClient = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-          error: null,
-        }),
-        signUp: vi.fn().mockRejectedValue({
-          code: '23505',
-          message: 'duplicate key value violates unique constraint',
-          status: 409,
-        }),
-      },
-    };
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
-      mockSupabaseClient
-    );
   });
 
   afterEach(() => {
@@ -291,6 +274,9 @@ describe('Register Page - Production Mode', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'password123');
     await userEvent.type(screen.getByLabelText('Confirm Password'), 'password123');
     await userEvent.click(screen.getByRole('button', { name: /register/i }));
+
+    // Debug DOM state
+    screen.debug();
 
     await waitFor(() => {
       expect(screen.getByText('This email is already in use')).toBeInTheDocument();
