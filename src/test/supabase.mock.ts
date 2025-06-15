@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
 // Mock Supabase client
 const mockSupabase = {
   auth: {
