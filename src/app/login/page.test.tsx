@@ -15,6 +15,7 @@ vi.mock('next/navigation', () => ({
 // Mock AuthContext
 vi.mock('@/contexts/auth/AuthContext', () => ({
   useAuth: vi.fn(),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 describe('LoginPage', () => {

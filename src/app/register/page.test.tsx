@@ -50,6 +50,7 @@ vi.mock('@/contexts/auth/AuthContext', async () => {
       isLoading: false,
       user: null,
     }),
+    AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   };
 });
 
