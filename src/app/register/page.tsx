@@ -46,12 +46,11 @@ const RegisterPage = () => {
         router.push('/login');
       }, 3000);
     } catch (err) {
-      console.log('Error object structure:', {
-        isError: err instanceof Error,
-        code: (err as { code?: string }).code,
-        message: err instanceof Error ? err.message : String(err),
-      });
-      setError(getErrorMessage(err));
+      console.log('Raw error:', err);
+      // Handle Supabase error structure
+      const error = err as { error?: { code?: string; message?: string } };
+      console.log('Processed error:', error);
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }

@@ -34,11 +34,13 @@ vi.mock('@/lib/errors', () => ({
 // Mock useAuth hook
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => {
-    const error = new Error('duplicate key value violates unique constraint');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (error as any).code = '23505';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (error as any).status = 409;
+    const error = {
+      error: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint',
+        status: 409,
+      },
+    };
     return {
       signUp: vi.fn().mockRejectedValueOnce(error),
       isLoading: false,
@@ -277,13 +279,12 @@ describe('RegisterPage', () => {
 });
 
 describe('Register Page - Production Mode', () => {
-  beforeEach(() => {
+  beforeAll(() => {
     vi.stubEnv('NODE_ENV', 'production');
   });
 
-  afterEach(() => {
+  afterAll(() => {
     vi.unstubAllEnvs();
-    vi.clearAllMocks();
   });
 
   it('shows production error message', async () => {
