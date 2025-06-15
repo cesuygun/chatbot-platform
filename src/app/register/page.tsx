@@ -46,6 +46,7 @@ const RegisterPage = () => {
         router.push('/login');
       }, 3000);
     } catch (err) {
+      console.error('Registration error:', err); // Debug line
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);

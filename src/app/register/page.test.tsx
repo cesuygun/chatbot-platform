@@ -33,15 +33,18 @@ vi.mock('@/lib/errors', () => ({
 
 // Mock useAuth hook
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: () => ({
-    signUp: vi.fn().mockRejectedValue({
-      code: '23505',
-      message: 'duplicate key value violates unique constraint',
-      status: 409,
-    }),
-    isLoading: false,
-    user: null,
-  }),
+  useAuth: () => {
+    const error = new Error('duplicate key value violates unique constraint');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (error as any).code = '23505';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (error as any).status = 409;
+    return {
+      signUp: vi.fn().mockRejectedValueOnce(error),
+      isLoading: false,
+      user: null,
+    };
+  },
 }));
 
 describe('RegisterPage', () => {

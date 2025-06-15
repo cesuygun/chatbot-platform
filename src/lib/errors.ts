@@ -4,23 +4,23 @@ export const isError = (err: unknown): err is Error => {
 };
 
 // Type guard for Supabase error
-const isSupabaseError = (error: unknown): error is { code: string; message: string } => {
+const isSupabaseError = (error: unknown): error is { code?: string } => {
   return (
     typeof error === 'object' &&
     error !== null &&
-    'code' in error &&
-    'message' in error
+    'code' in error
   );
 };
 
 // Get environment-specific error message
 export const getErrorMessage = (error: unknown): string => {
-  if (isSupabaseError(error) && error.code === '23505') {
-    return 'This email is already in use';
+  if (process.env.NODE_ENV === 'production') {
+    const code = (error as { code?: string })?.code;
+    return code === '23505'
+      ? 'This email is already in use'
+      : 'Registration failed. Try again later.';
   }
-  return process.env.NODE_ENV === 'production'
-    ? 'Registration failed'
-    : String(error);
+  return error instanceof Error ? error.message : String(error);
 };
 
 // Common error types for auth operations
