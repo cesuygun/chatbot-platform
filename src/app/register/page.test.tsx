@@ -3,11 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { vi, expect } from 'vitest';
+import { vi, expect, describe, it, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom';
 import RegisterPage from './page';
 import { AuthProvider } from '@/contexts/auth/AuthProvider';
-import { getErrorMessage } from '@/lib/errors';
 
 // Mock modules
 vi.mock('next/navigation', () => ({
@@ -21,32 +20,42 @@ vi.mock('@supabase/ssr', () => ({
 // Mock process.env
 vi.stubEnv('NODE_ENV', 'test');
 
-// Mock error utilities
-vi.mock('@/lib/errors', () => ({
-  getErrorMessage: vi.fn(error => {
-    if (error?.message === 'User already registered') {
-      return 'This email is already registered. Please try logging in instead.';
-    }
-    return error?.message || 'An error occurred';
-  }),
-}));
-
 // Mock useAuth hook
-vi.mock('@/hooks/useAuth', () => ({
-  useAuth: () => {
-    return {
-      signUp: vi.fn().mockResolvedValueOnce({
-        error: {
-          code: '23505',
-          message: 'duplicate key value violates unique constraint',
-        },
-        data: null,
+vi.mock('@/contexts/auth/AuthContext', async () => {
+  const actual = await import('@/contexts/auth/AuthContext');
+  return {
+    ...actual,
+    useAuth: () => ({
+      signUp: vi.fn().mockImplementation(async (email: string) => {
+        if (email === 'existing@example.com') {
+          return {
+            error: {
+              code: '23505',
+              message: 'User already registered',
+            },
+            data: null,
+          };
+        }
+        if (email === 'test@exists.com') {
+          return {
+            error: new Error('Registration failed'),
+            data: null,
+          };
+        }
+        return {
+          error: null,
+          data: { user: { id: 'test_user_id', email } },
+        };
       }),
       isLoading: false,
       user: null,
-    };
-  },
-}));
+    }),
+  };
+});
+
+const renderWithAuth = (component: React.ReactNode) => {
+  return render(<AuthProvider>{component}</AuthProvider>);
+};
 
 describe('RegisterPage', () => {
   const mockRouter = {
@@ -61,13 +70,10 @@ describe('RegisterPage', () => {
   });
 
   afterEach(() => {
+    vi.clearAllMocks();
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   });
-
-  const renderWithAuth = (component: React.ReactNode) => {
-    return render(<AuthProvider>{component}</AuthProvider>);
-  };
 
   it('renders register form with all required elements', () => {
     const mockSupabaseClient = {
@@ -89,93 +95,87 @@ describe('RegisterPage', () => {
   });
 
   it('handles registration error and displays user-friendly message', async () => {
-    const mockSupabaseClient = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-          error: null,
-        }),
-        signUp: vi.fn().mockResolvedValue({
-          data: { user: null },
-          error: { message: 'User already registered' },
-        }),
-      },
-    };
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
-      mockSupabaseClient
-    );
     renderWithAuth(<RegisterPage />);
-    screen.debug(); // Inspect DOM structure
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
+    const termsCheckbox = screen.getByLabelText(/accept the terms/i);
     const registerButton = screen.getByRole('button', { name: /register/i });
 
     await userEvent.type(emailInput, 'existing@example.com');
     await userEvent.type(passwordInput, 'password123');
     await userEvent.type(confirmPasswordInput, 'password123');
+    await userEvent.click(termsCheckbox);
     await userEvent.click(registerButton);
 
-    // Use flexible async matcher
-    const errorMessage = await screen.findByText(
-      content =>
-        content.toLowerCase().includes('user already registered') ||
-        content.toLowerCase().includes('email already registered'),
-      { exact: false }
-    );
-    expect(errorMessage).toBeInTheDocument();
-    expect(getErrorMessage).toHaveBeenCalledWith({ message: 'User already registered' });
+    await waitFor(() => {
+      expect(screen.getByText('This email is already in use')).toBeInTheDocument();
+    });
   });
 
-  it('shows error when passwords do not match', async () => {
-    const mockSupabaseClient = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-          error: null,
-        }),
-      },
-    };
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
-      mockSupabaseClient
-    );
+  it('should show validation error when email is invalid', async () => {
     renderWithAuth(<RegisterPage />);
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText('Password');
     const confirmPasswordInput = screen.getByLabelText('Confirm Password');
+    const termsCheckbox = screen.getByLabelText(/accept the terms/i);
+    const registerButton = screen.getByRole('button', { name: /register/i });
+
+    await userEvent.type(emailInput, 'invalid-email');
+    await userEvent.type(passwordInput, 'password123');
+    await userEvent.type(confirmPasswordInput, 'password123');
+    await userEvent.click(termsCheckbox);
+    await userEvent.click(registerButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Please enter a valid email address')).toBeInTheDocument();
+    });
+  });
+
+  it('should show validation error when password is too short', async () => {
+    renderWithAuth(<RegisterPage />);
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText('Password');
+    const confirmPasswordInput = screen.getByLabelText('Confirm Password');
+    const termsCheckbox = screen.getByLabelText(/accept the terms/i);
+    const registerButton = screen.getByRole('button', { name: /register/i });
+
+    await userEvent.type(emailInput, 'test@example.com');
+    await userEvent.type(passwordInput, 'short');
+    await userEvent.type(confirmPasswordInput, 'short');
+    await userEvent.click(termsCheckbox);
+    await userEvent.click(registerButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Password must be at least 8 characters long')).toBeInTheDocument();
+    });
+  });
+
+  it('should show validation error when passwords do not match', async () => {
+    renderWithAuth(<RegisterPage />);
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText('Password');
+    const confirmPasswordInput = screen.getByLabelText('Confirm Password');
+    const termsCheckbox = screen.getByLabelText(/accept the terms/i);
     const registerButton = screen.getByRole('button', { name: /register/i });
 
     await userEvent.type(emailInput, 'test@example.com');
     await userEvent.type(passwordInput, 'password123');
     await userEvent.type(confirmPasswordInput, 'different_password');
+    await userEvent.click(termsCheckbox);
     await userEvent.click(registerButton);
 
-    // Check error message appears
     await waitFor(() => {
-      expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
+      expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
     });
   });
 
-  it('handles successful registration and shows success message', async () => {
-    const mockSupabaseClient = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-          error: null,
-        }),
-        signUp: vi.fn().mockResolvedValue({
-          data: { user: { id: 'test_user_id', email: 'test@example.com' } },
-          error: null,
-        }),
-      },
-    };
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
-      mockSupabaseClient
-    );
+  it('should show validation error when terms are not accepted', async () => {
     renderWithAuth(<RegisterPage />);
-    screen.debug(); // Inspect DOM structure
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText('Password');
@@ -187,12 +187,35 @@ describe('RegisterPage', () => {
     await userEvent.type(confirmPasswordInput, 'password123');
     await userEvent.click(registerButton);
 
-    // Use flexible async matcher
-    const successMessage = await screen.findByText(
-      content => content.toLowerCase().includes('registration successful'),
-      { exact: false }
-    );
-    expect(successMessage).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Please accept the terms and conditions')).toBeInTheDocument();
+    });
+  });
+
+  it('should allow registration when all validations pass', async () => {
+    renderWithAuth(<RegisterPage />);
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText('Password');
+    const confirmPasswordInput = screen.getByLabelText('Confirm Password');
+    const termsCheckbox = screen.getByLabelText(/accept the terms/i);
+    const registerButton = screen.getByRole('button', { name: /register/i });
+
+    await userEvent.type(emailInput, 'test@example.com');
+    await userEvent.type(passwordInput, 'password123');
+    await userEvent.type(confirmPasswordInput, 'password123');
+    await userEvent.click(termsCheckbox);
+    await userEvent.click(registerButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Registration successful! Please check your email to confirm your account.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    // Wait for the redirect
     await waitFor(
       () => {
         expect(mockRouter.push).toHaveBeenCalledWith('/login');
@@ -201,108 +224,33 @@ describe('RegisterPage', () => {
     );
   });
 
-  it('detects already registered emails', async () => {
-    const mockSupabaseClient = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: null },
-          error: null,
-        }),
-        signInWithPassword: vi.fn().mockResolvedValue({
-          data: { user: { id: 'existing-user' } },
-          error: null,
-        }),
-        signUp: vi.fn(),
-      },
-    };
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
-      mockSupabaseClient
-    );
-    renderWithAuth(<RegisterPage />);
-    screen.debug(); // Inspect DOM structure
-
-    const emailInput = screen.getByLabelText(/email/i);
-    const passwordInput = screen.getByLabelText('Password');
-    const confirmPasswordInput = screen.getByLabelText('Confirm Password');
-    const registerButton = screen.getByRole('button', { name: /register/i });
-
-    await userEvent.type(emailInput, 'existing@example.com');
-    await userEvent.type(passwordInput, 'password123');
-    await userEvent.type(confirmPasswordInput, 'password123');
-    await userEvent.click(registerButton);
-
-    // Use flexible async matcher
-    const duplicateError = await screen.findByText(
-      content => content.toLowerCase().includes('this email is already registered'),
-      { exact: false }
-    );
-    expect(duplicateError).toBeInTheDocument();
-    expect(mockSupabaseClient.auth.signUp).not.toHaveBeenCalled();
-  });
-
-  it('shows error on duplicate email', async () => {
-    renderWithAuth(<RegisterPage />);
-
-    await userEvent.type(screen.getByLabelText('Email'), 'test@exists.com');
-    await userEvent.type(screen.getByLabelText('Password'), 'password123');
-    await userEvent.type(screen.getByLabelText('Confirm Password'), 'password123');
-    await userEvent.click(screen.getByRole('button', { name: /register/i }));
-
-    // Debug DOM state
-    screen.debug();
-
-    const duplicateError = await screen.findByText('This email is already in use', {
-      exact: false,
+  describe('Register Page - Production Mode', () => {
+    beforeEach(() => {
+      vi.stubEnv('NODE_ENV', 'production');
     });
-    await waitFor(() => {
-      expect(duplicateError).toBeInTheDocument();
+
+    afterEach(() => {
+      vi.stubEnv('NODE_ENV', 'test');
     });
-  });
 
-  it('shows error on duplicate email after triggering submission', async () => {
-    renderWithAuth(<RegisterPage />);
+    it('shows production error message', async () => {
+      renderWithAuth(<RegisterPage />);
 
-    await userEvent.type(screen.getByLabelText('Email'), 'test@exists.com');
-    await userEvent.type(screen.getByLabelText('Password'), 'password123');
-    await userEvent.type(screen.getByLabelText('Confirm Password'), 'password123');
-    await userEvent.click(screen.getByRole('button', { name: /register/i }));
+      const emailInput = screen.getByLabelText(/email/i);
+      const passwordInput = screen.getByLabelText('Password');
+      const confirmPasswordInput = screen.getByLabelText('Confirm Password');
+      const termsCheckbox = screen.getByLabelText(/accept the terms/i);
+      const registerButton = screen.getByRole('button', { name: /register/i });
 
-    // Debug DOM state
-    screen.debug();
+      await userEvent.type(emailInput, 'test@exists.com');
+      await userEvent.type(passwordInput, 'password123');
+      await userEvent.type(confirmPasswordInput, 'password123');
+      await userEvent.click(termsCheckbox);
+      await userEvent.click(registerButton);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('registration-error')).toBeInTheDocument();
-    });
-    console.log('Rendered error:', screen.getByTestId('registration-error').textContent);
-  });
-});
-
-describe('Register Page - Production Mode', () => {
-  beforeAll(() => {
-    vi.stubEnv('NODE_ENV', 'production');
-  });
-
-  afterAll(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('shows production error message', async () => {
-    render(
-      <AuthProvider>
-        <RegisterPage />
-      </AuthProvider>
-    );
-
-    await userEvent.type(screen.getByLabelText('Email'), 'test@exists.com');
-    await userEvent.type(screen.getByLabelText('Password'), 'password123');
-    await userEvent.type(screen.getByLabelText('Confirm Password'), 'password123');
-    await userEvent.click(screen.getByRole('button', { name: /register/i }));
-
-    // Debug DOM state
-    screen.debug();
-
-    await waitFor(() => {
-      expect(screen.getByText('This email is already in use')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Registration failed. Please try again.')).toBeInTheDocument();
+      });
     });
   });
 });

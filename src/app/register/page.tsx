@@ -1,6 +1,7 @@
 'use client';
-import * as React from 'react';
 export const dynamic = 'force-dynamic';
+
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -8,6 +9,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Card,
   CardContent,
@@ -17,6 +19,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { getErrorMessage } from '@/lib/errors';
+import { redirectWithTimeout } from './utils';
+import { AuthProvider } from '@/contexts/auth/AuthContext';
 
 const RegisterPage = () => {
   const router = useRouter();
@@ -25,32 +29,53 @@ const RegisterPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const { signUp } = useAuth();
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password: string) => {
+    return password.length >= 8;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
+    if (!termsAccepted) {
+      setError('Please accept the terms and conditions');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signUp(email, password);
+      const { error } = await signUp(email, password);
+      if (error) throw error;
       setError('Registration successful! Please check your email to confirm your account.');
-      // Redirect after a short delay to show the success message
-      setTimeout(() => {
+      redirectWithTimeout(() => {
         router.push('/login');
-      }, 3000);
+      });
     } catch (err) {
-      console.log('Raw error:', err);
-      // Handle Supabase error structure
-      const error = err as { error?: { code?: string; message?: string } };
-      console.log('Processed error:', error);
-      setError(getErrorMessage(error));
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -64,7 +89,7 @@ const RegisterPage = () => {
           <CardDescription>Create a new account to get started</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" data-testid="register-form">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -72,7 +97,8 @@ const RegisterPage = () => {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                required
+                aria-label="Email address"
+                data-testid="email-input"
               />
             </div>
             <div className="space-y-2">
@@ -82,7 +108,8 @@ const RegisterPage = () => {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                required
+                aria-label="Password"
+                data-testid="password-input"
               />
             </div>
             <div className="space-y-2">
@@ -92,19 +119,43 @@ const RegisterPage = () => {
                 type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                required
+                aria-label="Confirm password"
+                data-testid="confirm-password-input"
               />
             </div>
-            {error && <div data-testid="registration-error">{error}</div>}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="terms"
+                checked={termsAccepted}
+                onCheckedChange={checked => setTermsAccepted(checked as boolean)}
+                aria-label="Accept terms and conditions"
+                data-testid="terms-checkbox"
+              />
+              <Label htmlFor="terms" className="text-sm">
+                I accept the terms and conditions
+              </Label>
+            </div>
+            {error && (
+              <div data-testid="registration-error" className="text-red-500" role="alert">
+                {error}
+              </div>
+            )}
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button type="submit" className="w-full" disabled={loading} onClick={handleSubmit}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
+            onClick={handleSubmit}
+            data-testid="register-button"
+            aria-label={loading ? 'Loading...' : 'Register'}
+          >
             {loading ? 'Loading...' : 'Register'}
           </Button>
           <div className="text-center text-sm">
             Already have an account?{' '}
-            <Link href="/login" className="text-blue-500 hover:underline">
+            <Link href="/login" className="text-blue-500 hover:underline" data-testid="login-link">
               Login
             </Link>
           </div>
@@ -114,4 +165,10 @@ const RegisterPage = () => {
   );
 };
 
-export default RegisterPage;
+const RegisterPageWithProvider = () => (
+  <AuthProvider>
+    <RegisterPage />
+  </AuthProvider>
+);
+
+export default RegisterPageWithProvider;

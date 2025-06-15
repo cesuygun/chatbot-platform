@@ -15,7 +15,7 @@ const faqs = [
   },
 ];
 
-const PricingFAQ = () => (
+export const PricingFAQ = () => (
   <div className="mt-12">
     <h2 className="text-2xl font-semibold mb-4">Frequently Asked Questions</h2>
     <ul className="space-y-4">
@@ -28,5 +28,3 @@ const PricingFAQ = () => (
     </ul>
   </div>
 );
-
-export default PricingFAQ;

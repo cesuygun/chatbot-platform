@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Authentication Error Handling', () => {
   test('shows user-friendly error messages in production', async ({ page }) => {
     // Set environment to production
-    await page.route('**/*', (route) => {
+    await page.route('**/*', route => {
       const request = route.request();
       if (request.url().includes('process.env.NODE_ENV')) {
         return route.fulfill({
@@ -27,7 +27,7 @@ test.describe('Authentication Error Handling', () => {
 
   test('shows raw error messages in development', async ({ page }) => {
     // Set environment to development
-    await page.route('**/*', (route) => {
+    await page.route('**/*', route => {
       const request = route.request();
       if (request.url().includes('process.env.NODE_ENV')) {
         return route.fulfill({
@@ -51,7 +51,7 @@ test.describe('Authentication Error Handling', () => {
 
   test('handles network errors gracefully', async ({ page }) => {
     // Simulate network error
-    await page.route('**/auth/v1/signup', (route) => {
+    await page.route('**/auth/v1/signup', route => {
       return route.abort('failed');
     });
 
@@ -64,4 +64,4 @@ test.describe('Authentication Error Handling', () => {
     // Verify generic error message
     await expect(page.getByText(/an unexpected error occurred/i)).toBeVisible();
   });
-}); 
+});

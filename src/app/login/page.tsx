@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { getErrorMessage } from '@/lib/errors';
 
 const LoginPage = () => {
   const router = useRouter();
@@ -26,16 +27,37 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password: string) => {
+    return password.length >= 8;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      const { error } = await signIn(email, password);
+      if (error) throw error;
       router.push('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during login');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -45,12 +67,11 @@ const LoginPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign in to your account</CardTitle>
-          <CardDescription>Enter your email and password to access your account</CardDescription>
+          <CardTitle>Login</CardTitle>
+          <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {error && <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">{error}</div>}
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -59,7 +80,6 @@ const LoginPage = () => {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                placeholder="Enter your email"
               />
             </div>
             <div className="space-y-2">
@@ -70,27 +90,26 @@ const LoginPage = () => {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                placeholder="Enter your password"
               />
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
-            <div className="text-sm text-center space-y-2">
-              <Link href="/forgot-password" className="text-blue-600 hover:text-blue-500">
-                Forgot your password?
-              </Link>
-              <div>
-                Don&apos;t have an account?{' '}
-                <Link href="/register" className="text-blue-600 hover:text-blue-500">
-                  Sign up
-                </Link>
+            {error && (
+              <div data-testid="login-error" className="text-red-500">
+                {error}
               </div>
-            </div>
-          </CardFooter>
-        </form>
+            )}
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4">
+          <Button type="submit" className="w-full" disabled={loading} onClick={handleSubmit}>
+            {loading ? 'Loading...' : 'Login'}
+          </Button>
+          <div className="text-center text-sm">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="text-blue-500 hover:underline">
+              Register
+            </Link>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );
