@@ -1,7 +1,9 @@
 'use client';
 
 import { Suspense } from 'react';
-import { PricingHeader, PricingPlans, PricingFAQ } from '@/components/pricing';
+import { PricingHeader } from '../../components/pricing/PricingHeader';
+import PricingPlans from '../../components/pricing/PricingPlans';
+import { PricingFAQ } from '../../components/pricing/PricingFAQ';
 
 export default function PricingPage() {
   return (

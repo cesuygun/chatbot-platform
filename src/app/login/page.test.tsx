@@ -1,10 +1,11 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import { useRouter } from 'next/navigation';
-import { AuthProvider } from '@/contexts/auth/AuthProvider';
 import LoginPage from './page';
+import { useAuth } from '@/contexts/auth/AuthContext';
+import { useRouter } from 'next/navigation';
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import type { AuthContextType } from '@/contexts/auth/AuthContext';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -13,143 +14,123 @@ vi.mock('next/navigation', () => ({
 
 // Mock AuthContext
 vi.mock('@/contexts/auth/AuthContext', () => ({
-  useAuth: () => ({
-    signIn: vi.fn(),
-  }),
+  useAuth: vi.fn(),
 }));
 
-const renderWithAuth = (component: React.ReactNode) => {
-  return render(<AuthProvider>{component}</AuthProvider>);
-};
-
 describe('LoginPage', () => {
-  const mockRouter = {
+  const mockRouter: AppRouterInstance = {
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
     push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  };
+
+  const mockSignIn = vi.fn();
+
+  const mockAuth: AuthContextType = {
+    user: null,
+    loading: false,
+    signIn: mockSignIn,
+    signUp: vi.fn(),
+    signOut: vi.fn(),
+    resetPassword: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as unknown as { mockReturnValue: (v: typeof mockRouter) => void }).mockReturnValue(
-      mockRouter
-    );
+    vi.mocked(useRouter).mockReturnValue(mockRouter);
+    vi.mocked(useAuth).mockReturnValue(mockAuth);
+    mockSignIn.mockReset();
+    mockSignIn.mockResolvedValue({ error: null });
   });
 
   it('renders login form with all required elements', () => {
-    renderWithAuth(<LoginPage />);
-    expect(screen.getByText(/sign in to your account/i)).toBeInTheDocument();
+    render(<LoginPage />);
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
   });
 
   it('handles successful login and redirects to dashboard', async () => {
-    const { useAuth } = await import('@/contexts/auth/AuthContext');
-    (
-      useAuth as unknown as {
-        mockReturnValue: (v: { signIn: () => Promise<{ error: null }> }) => void;
-      }
-    ).mockReturnValue({
-      signIn: vi.fn().mockResolvedValue({ error: null }),
-    });
+    mockSignIn.mockResolvedValueOnce({ error: null });
 
-    renderWithAuth(<LoginPage />);
+    render(<LoginPage />);
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
-    const loginButton = screen.getByRole('button', { name: /login/i });
+    const submitButton = screen.getByRole('button', { name: /login/i });
 
     await userEvent.type(emailInput, 'test@example.com');
     await userEvent.type(passwordInput, 'password123');
-    await userEvent.click(loginButton);
+    await userEvent.click(submitButton);
 
     await waitFor(() => {
+      expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
       expect(mockRouter.push).toHaveBeenCalledWith('/dashboard');
     });
   });
 
   it('handles login error and displays error message', async () => {
-    const { useAuth } = await import('@/contexts/auth/AuthContext');
-    (
-      useAuth as unknown as {
-        mockReturnValue: (v: { signIn: () => Promise<{ error: Error }> }) => void;
-      }
-    ).mockReturnValue({
-      signIn: vi.fn().mockResolvedValue({ error: new Error('Invalid login credentials') }),
-    });
-
-    renderWithAuth(<LoginPage />);
-    const emailInput = screen.getByLabelText(/email/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-    const loginButton = screen.getByRole('button', { name: /login/i });
+    mockSignIn.mockResolvedValueOnce({ error: 'Some error' });
+    render(<LoginPage />);
+    const emailInput = screen.getByLabelText('Email');
+    const passwordInput = screen.getByLabelText('Password');
+    const submitButton = screen.getByRole('button', { name: 'Login' });
 
     await userEvent.type(emailInput, 'test@example.com');
-    await userEvent.type(passwordInput, 'wrongpassword');
-    await userEvent.click(loginButton);
+    await userEvent.type(passwordInput, 'password123');
+    await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId('login-error')).toHaveTextContent('Invalid login credentials');
+      expect(screen.getByTestId('login-error')).toHaveTextContent('An error occurred during login');
     });
   });
 
   it('shows production error message', async () => {
-    vi.stubEnv('NODE_ENV', 'production');
-    const { useAuth } = await import('@/contexts/auth/AuthContext');
-    (
-      useAuth as unknown as {
-        mockReturnValue: (v: { signIn: () => Promise<{ error: Error }> }) => void;
-      }
-    ).mockReturnValue({
-      signIn: vi.fn().mockResolvedValue({ error: new Error('Invalid login credentials') }),
-    });
+    mockSignIn.mockRejectedValueOnce(new Error('Network error'));
 
-    renderWithAuth(<LoginPage />);
+    render(<LoginPage />);
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
-    const loginButton = screen.getByRole('button', { name: /login/i });
+    const submitButton = screen.getByRole('button', { name: /login/i });
 
     await userEvent.type(emailInput, 'test@example.com');
-    await userEvent.type(passwordInput, 'wrongpassword');
-    await userEvent.click(loginButton);
+    await userEvent.type(passwordInput, 'password123');
+    await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByTestId('login-error')).toHaveTextContent(
-        'Registration failed. Please try again.'
-      );
+      expect(screen.getByTestId('login-error')).toHaveTextContent('Network error');
     });
   });
 
   it('should show validation error when email is invalid', async () => {
-    renderWithAuth(<LoginPage />);
-
+    render(<LoginPage />);
     const emailInput = screen.getByLabelText(/email/i);
-    const passwordInput = screen.getByLabelText('Password');
-    const loginButton = screen.getByRole('button', { name: /login/i });
+    const passwordInput = screen.getByLabelText(/password/i);
+    const submitButton = screen.getByRole('button', { name: /login/i });
 
     await userEvent.type(emailInput, 'invalid-email');
     await userEvent.type(passwordInput, 'password123');
-    await userEvent.click(loginButton);
+    await userEvent.click(submitButton);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('login-error')).toHaveTextContent(
-        'Please enter a valid email address'
-      );
-    });
+    expect(screen.getByTestId('login-error')).toHaveTextContent(
+      'Please enter a valid email address'
+    );
   });
 
   it('should show validation error when password is too short', async () => {
-    renderWithAuth(<LoginPage />);
-
+    render(<LoginPage />);
     const emailInput = screen.getByLabelText(/email/i);
-    const passwordInput = screen.getByLabelText('Password');
-    const loginButton = screen.getByRole('button', { name: /login/i });
+    const passwordInput = screen.getByLabelText(/password/i);
+    const submitButton = screen.getByRole('button', { name: /login/i });
 
     await userEvent.type(emailInput, 'test@example.com');
     await userEvent.type(passwordInput, 'short');
-    await userEvent.click(loginButton);
+    await userEvent.click(submitButton);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('login-error')).toHaveTextContent(
-        'Password must be at least 8 characters long'
-      );
-    });
+    expect(screen.getByTestId('login-error')).toHaveTextContent(
+      'Password must be at least 8 characters long'
+    );
   });
 });

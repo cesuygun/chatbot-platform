@@ -18,15 +18,23 @@ const supabase = createClient(
 );
 
 export async function POST(req: Request) {
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 400 });
+  }
+
   const body = await req.text();
   const headersList = await headers();
-  const signature = headersList.get('stripe-signature')!;
+  const signature = headersList.get('stripe-signature');
+
+  if (!signature) {
+    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 400 });
+  }
 
   try {
     const event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET
     );
 
     switch (event.type) {

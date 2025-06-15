@@ -111,7 +111,31 @@ const PRICING_PLANS = [
   },
 ];
 
-export function PricingPlans() {
+const YEARLY_DISCOUNT = 0.2; // 20% off
+const MONTHS_IN_YEAR = 12;
+
+interface PricingPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  features: {
+    id: string;
+    name: string;
+    description: string;
+    included: boolean;
+  }[];
+}
+
+const getPrice = (plan: PricingPlan, interval: 'month' | 'year'): number => {
+  if (interval === 'year') {
+    if (plan.price === 0) return 0;
+    return Math.round(plan.price * MONTHS_IN_YEAR * (1 - YEARLY_DISCOUNT));
+  }
+  return plan.price;
+};
+
+export default function PricingPlans() {
   const [interval, setInterval] = useState<'month' | 'year'>('month');
   const router = useRouter();
   const { user } = useAuth();
@@ -165,12 +189,13 @@ export function PricingPlans() {
           <Card
             key={plan.id}
             className={`flex flex-col ${plan.id === 'pro' ? 'border-primary shadow-lg' : ''}`}
+            data-testid={plan.id === 'pro' ? 'pro-plan-card' : undefined}
           >
             <CardHeader>
               <CardTitle>{plan.name}</CardTitle>
               <CardDescription>{plan.description}</CardDescription>
               <div className="mt-4">
-                <span className="text-4xl font-bold">${plan.price === 0 ? '0' : plan.price}</span>
+                <span className="text-4xl font-bold">${getPrice(plan, interval)}</span>
                 <span className="text-muted-foreground">/{interval}</span>
               </div>
             </CardHeader>

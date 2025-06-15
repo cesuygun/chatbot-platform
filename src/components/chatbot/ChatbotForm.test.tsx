@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChatbotForm } from './ChatbotForm';
 
@@ -13,10 +13,62 @@ vi.mock('process', () => ({
 }));
 
 // Mock Radix UI Select to HTML equivalents
-vi.mock(
-  '@radix-ui/react-select',
-  async () => await import('../../tests/__mocks__/@radix-ui/react-select')
-);
+vi.mock('@radix-ui/react-select', () => ({
+  Root: ({
+    children,
+    disabled,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    disabled?: boolean;
+    [key: string]: any;
+  }) => React.createElement('select', { id: 'model', name: 'model', disabled, ...props }, children),
+  Select: ({
+    children,
+    disabled,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    disabled?: boolean;
+    [key: string]: any;
+  }) => React.createElement('select', { id: 'model', name: 'model', disabled, ...props }, children),
+  Trigger: ({
+    children,
+    disabled,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    disabled?: boolean;
+    [key: string]: any;
+  }) => React.createElement('button', { disabled, ...props }, children),
+  Content: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) =>
+    React.createElement('div', props, children),
+  Item: ({
+    children,
+    disabled,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    disabled?: boolean;
+    [key: string]: any;
+  }) => React.createElement('option', { disabled, ...props }, children),
+  Value: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) =>
+    React.createElement('span', props, children),
+  Group: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) =>
+    React.createElement('div', props, children),
+  Label: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) =>
+    React.createElement('span', props, children),
+  Separator: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) =>
+    React.createElement('div', props, children),
+  ItemIndicator: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) =>
+    React.createElement('span', props, children),
+  ItemText: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) =>
+    React.createElement('span', props, children),
+  Viewport: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) =>
+    React.createElement('div', props, children),
+  Portal: ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) =>
+    React.createElement('div', props, children),
+}));
 
 function getSupabaseMocks() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,7 +130,8 @@ describe('ChatbotForm', () => {
 
     // Select model
     const modelSelect = screen.getByLabelText(/model/i);
-    fireEvent.change(modelSelect, { target: { value: 'gpt-4' } });
+    await userEvent.click(modelSelect);
+    await userEvent.click(screen.getByText('GPT-4'));
 
     // Submit form
     await userEvent.click(screen.getByRole('button', { name: /create bot/i }));
@@ -106,13 +159,13 @@ describe('ChatbotForm', () => {
       data: { user: null },
       error: new Error('Auth error'),
     });
-
     render(<ChatbotForm onSuccess={mockOnSuccess} onError={mockOnError} />);
 
     // Fill in the form
     await userEvent.type(screen.getByLabelText(/bot name/i), 'Test Bot');
     const modelSelect = screen.getByLabelText(/model/i);
-    fireEvent.change(modelSelect, { target: { value: 'gpt-4' } });
+    await userEvent.click(modelSelect);
+    await userEvent.click(screen.getByText('GPT-4'));
 
     // Submit form
     await userEvent.click(screen.getByRole('button', { name: /create bot/i }));
@@ -126,13 +179,13 @@ describe('ChatbotForm', () => {
   it('handles bot creation errors', async () => {
     const mocks = getSupabaseMocks();
     mocks.mockSingle.mockResolvedValueOnce({ data: null, error: new Error('Creation error') });
-
     render(<ChatbotForm onSuccess={mockOnSuccess} onError={mockOnError} />);
 
     // Fill in the form
     await userEvent.type(screen.getByLabelText(/bot name/i), 'Test Bot');
     const modelSelect = screen.getByLabelText(/model/i);
-    fireEvent.change(modelSelect, { target: { value: 'gpt-4' } });
+    await userEvent.click(modelSelect);
+    await userEvent.click(screen.getByText('GPT-4'));
 
     // Submit form
     await userEvent.click(screen.getByRole('button', { name: /create bot/i }));
@@ -149,7 +202,8 @@ describe('ChatbotForm', () => {
     // Fill in the form
     await userEvent.type(screen.getByLabelText(/bot name/i), 'Test Bot');
     const modelSelect = screen.getByLabelText(/model/i);
-    fireEvent.change(modelSelect, { target: { value: 'gpt-4' } });
+    await userEvent.click(modelSelect);
+    await userEvent.click(screen.getByText('GPT-4'));
 
     // Submit form
     const submitButton = screen.getByRole('button', { name: /create bot/i });

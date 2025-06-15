@@ -47,7 +47,8 @@ export const ChatInterface = ({ botId, className }: ChatInterfaceProps) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input, botId }),
@@ -120,12 +121,14 @@ export const ChatInterface = ({ botId, className }: ChatInterfaceProps) => {
             placeholder="Type your message..."
             disabled={isLoading}
             aria-label="Message input"
+            data-testid="message-input"
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 h-9 px-4 py-2 has-[>svg]:px-3"
             aria-label="Send message"
+            data-testid="send-button"
           >
             <Send className="h-4 w-4" />
           </button>

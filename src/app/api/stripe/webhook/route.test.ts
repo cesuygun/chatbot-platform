@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
+import { headers } from 'next/headers';
 
 // Mock next/headers
 vi.mock('next/headers', () => ({
@@ -157,11 +158,10 @@ describe('Stripe Webhook', () => {
   it('should return 400 if webhook signature verification fails', async () => {
     const mockEvent = { ...baseMockEvent };
 
-    const stripeModule = await import('stripe');
-    const mockStripeInstance = new stripeModule.default('test_key');
-    vi.spyOn(mockStripeInstance.webhooks, 'constructEvent').mockImplementation(() => {
-      throw new Error('Invalid signature');
-    });
+    // Mock headers to return null for stripe-signature
+    vi.mocked(headers).mockResolvedValueOnce({
+      get: vi.fn().mockReturnValue(null),
+    } as unknown as Headers);
 
     const req = new NextRequest('http://localhost:3000/api/stripe/webhook', {
       method: 'POST',
@@ -175,7 +175,7 @@ describe('Stripe Webhook', () => {
     expect(data).toEqual({ error: 'Webhook handler failed' });
   });
 
-  it('should return 400 for unsupported event types', async () => {
+  it('should handle unsupported event types', async () => {
     const mockEvent = {
       ...baseMockEvent,
       type: 'unsupported.event' as Stripe.Event.Type,

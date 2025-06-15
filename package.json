@@ -18,7 +18,11 @@
     "test:e2e:quick": "tsx scripts/test-e2e.ts",
     "test:pipeline": "tsx scripts/test-pipeline.ts",
     "format": "prettier --write .",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "test:api": "vitest run src/app/api/**/*.test.ts",
+    "test:components": "vitest run src/components/**/*.test.tsx",
+    "test:pages": "vitest run src/app/**/page.test.tsx",
+    "test:utils": "vitest run src/test/**/*.test.ts src/middleware.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.2",
@@ -78,6 +82,6 @@
     "tw-animate-css": "^1.3.4",
     "typescript": "^5.8.3",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.1"
+    "vitest": "^3.2.3"
   }
 }

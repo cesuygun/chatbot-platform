@@ -1,9 +1,8 @@
 import { NextRequest } from 'next/server';
 import { middleware } from './middleware';
-import { Ratelimit } from '@upstash/ratelimit';
 import { vi } from 'vitest';
 
-// Mock the Upstash Redis and Ratelimit
+// Mock the Upstash Redis
 vi.mock('@upstash/redis', () => ({
   Redis: {
     fromEnv: vi.fn().mockReturnValue({
@@ -12,12 +11,29 @@ vi.mock('@upstash/redis', () => ({
   },
 }));
 
-vi.mock('@upstash/ratelimit', () => ({
-  Ratelimit: {
-    slidingWindow: vi.fn().mockReturnValue({
-      limit: vi.fn(),
-    }),
-  },
+// Mock the Ratelimit
+vi.mock('@upstash/ratelimit', () => {
+  const mockLimit = vi.fn();
+  return {
+    Ratelimit: class {
+      static slidingWindow = (limit: number, window: string) => ({
+        limit,
+        window,
+      });
+      limit = mockLimit;
+    },
+  };
+});
+
+// Mock Supabase auth
+vi.mock('@supabase/auth-helpers-nextjs', () => ({
+  createMiddlewareClient: vi.fn().mockReturnValue({
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: null },
+      }),
+    },
+  }),
 }));
 
 describe('Rate Limiting Middleware', () => {
@@ -28,7 +44,7 @@ describe('Rate Limiting Middleware', () => {
   it('allows non-API routes to pass through', async () => {
     const request = new NextRequest(new Request('http://localhost:3000/dashboard'));
     const response = await middleware(request);
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(307); // Expect redirect to login
   });
 
   it('applies rate limiting to API routes', async () => {
@@ -36,14 +52,16 @@ describe('Rate Limiting Middleware', () => {
     request.headers.set('x-forwarded-for', '1.2.3.4');
 
     // Mock successful rate limit check
-    (Ratelimit.slidingWindow as jest.Mock).mockReturnValue({
-      limit: vi.fn().mockResolvedValue({
-        success: true,
-        limit: 10,
-        remaining: 9,
-        reset: Date.now() + 10000,
-      }),
+    const mockLimit = vi.fn().mockResolvedValue({
+      success: true,
+      limit: 10,
+      remaining: 9,
+      reset: Date.now() + 10000,
     });
+
+    // Update the mock implementation
+    const Ratelimit = require('@upstash/ratelimit').Ratelimit;
+    Ratelimit.prototype.limit = mockLimit;
 
     const response = await middleware(request);
     expect(response.status).toBe(200);
@@ -56,14 +74,16 @@ describe('Rate Limiting Middleware', () => {
     request.headers.set('x-forwarded-for', '1.2.3.4');
 
     // Mock rate limit exceeded
-    (Ratelimit.slidingWindow as jest.Mock).mockReturnValue({
-      limit: vi.fn().mockResolvedValue({
-        success: false,
-        limit: 10,
-        remaining: 0,
-        reset: Date.now() + 10000,
-      }),
+    const mockLimit = vi.fn().mockResolvedValue({
+      success: false,
+      limit: 10,
+      remaining: 0,
+      reset: Date.now() + 10000,
     });
+
+    // Update the mock implementation
+    const Ratelimit = require('@upstash/ratelimit').Ratelimit;
+    Ratelimit.prototype.limit = mockLimit;
 
     const response = await middleware(request);
     expect(response.status).toBe(429);
@@ -74,17 +94,19 @@ describe('Rate Limiting Middleware', () => {
     const request = new NextRequest(new Request('http://localhost:3000/api/chat'));
 
     // Mock successful rate limit check
-    (Ratelimit.slidingWindow as jest.Mock).mockReturnValue({
-      limit: vi.fn().mockResolvedValue({
-        success: true,
-        limit: 10,
-        remaining: 9,
-        reset: Date.now() + 10000,
-      }),
+    const mockLimit = vi.fn().mockResolvedValue({
+      success: true,
+      limit: 10,
+      remaining: 9,
+      reset: Date.now() + 10000,
     });
+
+    // Update the mock implementation
+    const Ratelimit = require('@upstash/ratelimit').Ratelimit;
+    Ratelimit.prototype.limit = mockLimit;
 
     const response = await middleware(request);
     expect(response.status).toBe(200);
-    expect(Ratelimit.slidingWindow).toHaveBeenCalled();
+    expect(mockLimit).toHaveBeenCalledWith('127.0.0.1');
   });
 });

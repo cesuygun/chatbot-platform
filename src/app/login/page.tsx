@@ -57,7 +57,7 @@ const LoginPage = () => {
       if (error) throw error;
       router.push('/dashboard');
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(getErrorMessage(err, 'login'));
     } finally {
       setLoading(false);
     }
