@@ -17,9 +17,6 @@ export const getStripe = (): Stripe => {
   return stripeInstance;
 };
 
-// Legacy export for backward compatibility (will be removed in future)
-export const stripe = getStripe();
-
 // Type validation schemas
 export const subscriptionSchema = z.object({
   id: z.string(),
