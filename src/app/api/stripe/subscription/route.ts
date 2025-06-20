@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { stripe, subscriptionSchema, formatStripeDate } from '@/lib/stripe';
+import { getStripe, subscriptionSchema, formatStripeDate } from '@/lib/stripe';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,6 +15,9 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
+
+    // Initialize Stripe client lazily
+    const stripe = getStripe();
 
     // Get user's Stripe customer ID from Supabase
     const { data: userData, error: userError } = await supabase

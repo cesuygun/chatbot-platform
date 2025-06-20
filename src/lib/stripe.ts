@@ -1,10 +1,24 @@
 import Stripe from 'stripe';
 import { z } from 'zod';
 
-// Stripe configuration
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
+// Lazy initialization of Stripe client to prevent build-time errors
+let stripeInstance: Stripe | null = null;
+
+export const getStripe = (): Stripe => {
+  if (!stripeInstance) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    stripeInstance = new Stripe(secretKey, {
+      apiVersion: '2025-05-28.basil',
+    });
+  }
+  return stripeInstance;
+};
+
+// Legacy export for backward compatibility (will be removed in future)
+export const stripe = getStripe();
 
 // Type validation schemas
 export const subscriptionSchema = z.object({

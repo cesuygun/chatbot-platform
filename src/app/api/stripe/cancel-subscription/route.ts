@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { getStripe } from '@/lib/stripe';
 
 export async function POST(request: Request) {
   try {
@@ -8,6 +8,9 @@ export async function POST(request: Request) {
     if (!subscriptionId) {
       return NextResponse.json({ error: 'Subscription ID is required' }, { status: 400 });
     }
+
+    // Initialize Stripe client lazily
+    const stripe = getStripe();
 
     // Cancel the subscription at period end
     const subscription = await stripe.subscriptions.update(subscriptionId, {

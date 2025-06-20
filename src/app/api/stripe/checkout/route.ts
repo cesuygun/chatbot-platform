@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { getStripe } from '@/lib/stripe';
 
 // Disable edge runtime for this route
 export const runtime = 'nodejs';
@@ -19,11 +19,10 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: Request) {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
   const priceId = process.env.STRIPE_PRICE_ID;
   const domain = process.env.NEXT_PUBLIC_APP_URL;
 
-  if (!secretKey || !priceId || !domain) {
+  if (!priceId || !domain) {
     return NextResponse.json(
       { error: 'Missing environment variables' },
       {
@@ -32,10 +31,6 @@ export async function POST(req: Request) {
       }
     );
   }
-
-  const stripe = new Stripe(secretKey, {
-    apiVersion: '2025-05-28.basil',
-  });
 
   let user_id: string | null = null;
   const contentType = req.headers.get('content-type') || '';
@@ -58,6 +53,9 @@ export async function POST(req: Request) {
         }
       );
     }
+
+    // Initialize Stripe client lazily
+    const stripe = getStripe();
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',

@@ -2,14 +2,10 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { getStripe } from '@/lib/stripe';
 
 // Disable edge runtime for this route
 export const runtime = 'nodejs';
-
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -31,6 +27,9 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Initialize Stripe client lazily
+    const stripe = getStripe();
+    
     const event = stripe.webhooks.constructEvent(
       body,
       signature,
