@@ -57,4 +57,24 @@ test.describe('Dashboard Page', () => {
     await page.goto('/dashboard');
     await expect(page).toHaveURL('/login');
   });
+
+  test('should show embed code dialog and copy embed code', async ({ page }) => {
+    // Create a bot first
+    await page.getByTestId('create-bot-button').click();
+    await page.getByTestId('bot-name-input').fill('Embed Bot');
+    await page.getByTestId('create-bot-submit').click();
+    await expect(page.getByText('Embed Bot')).toBeVisible();
+
+    // Open embed code dialog
+    await page.getByTestId('embed-bot-button-').click(); // Use partial match if dynamic id
+    await expect(page.getByTestId('embed-code-textarea')).toBeVisible();
+
+    // Click copy button
+    await page.getByTestId('copy-embed-code-button').click();
+    await expect(page.getByTestId('copy-embed-code-button')).toHaveText(/copied/i);
+
+    // Close dialog
+    await page.getByTestId('close-embed-dialog-button').click();
+    await expect(page.getByTestId('embed-code-textarea')).not.toBeVisible();
+  });
 }); 

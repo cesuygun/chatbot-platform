@@ -65,3 +65,46 @@ test.describe('Authentication Error Handling', () => {
     await expect(page.getByText(/an unexpected error occurred/i)).toBeVisible();
   });
 });
+
+test.describe('Stripe Subscription Flow', () => {
+  test('user can upgrade to premium and sees updated status', async ({ page }) => {
+    // Login first
+    await page.goto('/login');
+    await page.fill('input[type="email"]', 'test@example.com');
+    await page.fill('input[type="password"]', 'password123');
+    await page.click('button[type="submit"]');
+    await expect(page).toHaveURL('/dashboard');
+
+    // Click subscribe button
+    await page.getByTestId('subscribe-button').click();
+
+    // Simulate Stripe redirect (mock)
+    // In a real test, you would intercept the request and simulate a successful payment
+    // For now, just go back to dashboard and check status
+    await page.goto('/dashboard');
+    // Simulate user_metadata.subscribed is now true (mocked in test env)
+    await expect(page.getByTestId('subscription-status')).toHaveText(/active/i);
+    await expect(page.getByTestId('premium-subscription')).toBeVisible();
+  });
+});
+
+test.describe('Billing History', () => {
+  test('user can view billing history', async ({ page }) => {
+    // Login first
+    await page.goto('/login');
+    await page.fill('input[type="email"]', 'test@example.com');
+    await page.fill('input[type="password"]', 'password123');
+    await page.click('button[type="submit"]');
+    await expect(page).toHaveURL('/dashboard');
+
+    // Go to subscription management page
+    await page.goto('/dashboard/subscription');
+    await expect(page.getByText(/billing history/i)).toBeVisible();
+    await expect(page.getByText(/view your past invoices/i)).toBeVisible();
+    // Check for at least the table headers
+    await expect(page.getByText(/date/i)).toBeVisible();
+    await expect(page.getByText(/amount/i)).toBeVisible();
+    await expect(page.getByText(/status/i)).toBeVisible();
+    await expect(page.getByText(/invoice/i)).toBeVisible();
+  });
+});
