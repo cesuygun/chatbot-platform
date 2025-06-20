@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import * as React from 'react';
 import { useEffect, useState } from 'react';
@@ -7,7 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Copy } from 'lucide-react';
 import { useAuth } from '@/contexts/auth/AuthContext';
@@ -62,7 +69,9 @@ const DashboardPage = () => {
               .single();
 
             if (profileError && profileError.code === '42P01') {
-              console.error("Users table doesn't exist. Please create it with the SQL script provided.");
+              console.error(
+                "Users table doesn't exist. Please create it with the SQL script provided."
+              );
             }
           } catch (error) {
             console.error('Error fetching user profile:', error);
@@ -183,7 +192,11 @@ const DashboardPage = () => {
 
     try {
       const supabase = getSupabase();
-      const { error } = await supabase.from(BOTS_TABLE).delete().eq('id', botId).eq('user_id', user.id);
+      const { error } = await supabase
+        .from(BOTS_TABLE)
+        .delete()
+        .eq('id', botId)
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Error deleting bot:', error);
@@ -211,7 +224,7 @@ const DashboardPage = () => {
     if (selectedBot) {
       const embedCode = `<script src="${window.location.origin}/embed.js"></script>
 <div id="chatbot-widget" data-bot-id="${selectedBot.id}"></div>`;
-      
+
       navigator.clipboard.writeText(embedCode).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -245,13 +258,7 @@ const DashboardPage = () => {
             <form onSubmit={handleCreateBot} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Bot Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required
-                  placeholder="Enter bot name"
-                />
+                <Input id="name" name="name" type="text" required placeholder="Enter bot name" />
               </div>
               <Button type="submit" className="w-full">
                 Create Bot
@@ -277,10 +284,7 @@ const DashboardPage = () => {
               </p>
             </div>
             {!user.user_metadata?.subscribed && (
-              <Button
-                onClick={() => router.push('/pricing')}
-                className="w-full"
-              >
+              <Button onClick={() => router.push('/pricing')} className="w-full">
                 Upgrade to Pro
               </Button>
             )}
@@ -308,11 +312,7 @@ const DashboardPage = () => {
                     <p className="text-sm text-gray-500">ID: {bot.id}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEmbedDialog(bot)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleOpenEmbedDialog(bot)}>
                       Get Embed Code
                     </Button>
                     <form onSubmit={handleDeleteBot} className="inline">
@@ -340,8 +340,12 @@ const DashboardPage = () => {
               Copy and paste this code into your website to embed the chatbot:
             </p>
             <Textarea
-              value={selectedBot ? `<script src="${window.location.origin}/embed.js"></script>
-<div id="chatbot-widget" data-bot-id="${selectedBot.id}"></div>` : ''}
+              value={
+                selectedBot
+                  ? `<script src="${window.location.origin}/embed.js"></script>
+<div id="chatbot-widget" data-bot-id="${selectedBot.id}"></div>`
+                  : ''
+              }
               readOnly
               className="font-mono text-sm"
               rows={4}
