@@ -2,18 +2,17 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
 
-const mockStripe = {
-  checkout: {
-    sessions: {
-      create: vi.fn().mockResolvedValue({
-        url: 'https://checkout.stripe.com/test',
-      }),
+// Mock the getStripe function
+vi.mock('@/lib/stripe', () => ({
+  getStripe: vi.fn().mockReturnValue({
+    checkout: {
+      sessions: {
+        create: vi.fn().mockResolvedValue({
+          url: 'https://checkout.stripe.com/test',
+        }),
+      },
     },
-  },
-};
-
-vi.mock('stripe', () => ({
-  default: vi.fn().mockImplementation(() => mockStripe),
+  }),
 }));
 
 describe('POST /api/stripe/checkout', () => {
@@ -63,6 +62,16 @@ describe('POST /api/stripe/checkout', () => {
   });
 
   it('returns 500 if Stripe API call fails', async () => {
+    // Mock getStripe to return a failing implementation
+    const { getStripe } = await import('@/lib/stripe');
+    vi.mocked(getStripe).mockReturnValueOnce({
+      checkout: {
+        sessions: {
+          create: vi.fn().mockRejectedValue(new Error('Stripe API error')),
+        },
+      },
+    } as unknown as ReturnType<typeof getStripe>);
+
     const request = new NextRequest('http://localhost:3000/api/stripe/checkout', {
       method: 'POST',
       headers: {
@@ -70,8 +79,6 @@ describe('POST /api/stripe/checkout', () => {
       },
       body: JSON.stringify({ user_id: 'test_user_id' }),
     });
-
-    mockStripe.checkout.sessions.create.mockRejectedValueOnce(new Error('Stripe API error'));
 
     const response = await POST(request);
     const data = await response.json();
@@ -100,7 +107,17 @@ describe('POST /api/stripe/checkout', () => {
   });
 
   it('returns 500 if environment variables are missing', async () => {
+    // Reset all modules and mocks
+    vi.resetModules();
+
+    // Remove the env vars
     delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_PRICE_ID;
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    // Re-import POST after resetModules so it uses the real getStripe
+    const { POST } = await import('./route');
+    const { NextRequest } = await import('next/server');
 
     const request = new NextRequest('http://localhost:3000/api/stripe/checkout', {
       method: 'POST',

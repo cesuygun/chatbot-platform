@@ -14,21 +14,19 @@ vi.mock('next/headers', () => ({
   }),
 }));
 
-// Mock Stripe
-vi.mock('stripe', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      webhooks: {
-        constructEvent: vi.fn().mockImplementation((payload, signature, secret) => {
-          if (!signature || !secret) {
-            throw new Error('Invalid signature');
-          }
-          return JSON.parse(payload);
-        }),
-      },
-    })),
-  };
-});
+// Mock the getStripe function
+vi.mock('@/lib/stripe', () => ({
+  getStripe: vi.fn().mockReturnValue({
+    webhooks: {
+      constructEvent: vi.fn().mockImplementation((payload, signature, secret) => {
+        if (!signature || !secret) {
+          throw new Error('Invalid signature');
+        }
+        return JSON.parse(payload);
+      }),
+    },
+  }),
+}));
 
 // Mock Supabase
 vi.mock('@supabase/supabase-js', () => ({
