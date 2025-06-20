@@ -46,7 +46,6 @@ export const test = base.extend<AuthFixtures>({
         window.AuthContext = {
           user: null,
           loading: false,
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           signIn: async (email: string, password: string) => {
             if (email === 'test@example.com' && password === 'password123') {
               window.AuthContext.user = { id: 'test-user-id', email };
@@ -54,7 +53,6 @@ export const test = base.extend<AuthFixtures>({
             }
             return { error: new Error('Invalid credentials') };
           },
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           signUp: async (email: string, password: string) => {
             if (password.length >= 8) {
               window.AuthContext.user = { id: 'test-user-id', email };
@@ -73,7 +71,6 @@ export const test = base.extend<AuthFixtures>({
         window.getSupabase = () => ({
           auth: {
             getUser: async () => ({ data: { user: window.AuthContext.user }, error: null }),
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             signIn: async (credentials: { email: string; password: string }) => {
               if (credentials.email === 'test@example.com' && credentials.password === 'password123') {
                 const user = { id: 'test-user-id', email: credentials.email };
@@ -82,7 +79,6 @@ export const test = base.extend<AuthFixtures>({
               }
               return { data: { user: null }, error: new Error('Invalid credentials') };
             },
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             signUp: async (credentials: { email: string; password: string }) => {
               if (credentials.password.length >= 8) {
                 const user = { id: 'test-user-id', email: credentials.email };
@@ -109,14 +105,12 @@ export const test = base.extend<AuthFixtures>({
       await use({
         user: null,
         loading: false,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         signIn: async (email: string, password: string) => {
           if (email === 'test@example.com' && password === 'password123') {
             return { error: null };
           }
           return { error: new Error('Invalid credentials') };
         },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         signUp: async (email: string, password: string) => {
           if (password.length >= 8) {
             return { error: null };
@@ -137,7 +131,6 @@ export const test = base.extend<AuthFixtures>({
 export { expect } from '@playwright/test';
 
 export const mockAuth = {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   signIn: async ({ email, password }: { email: string; password: string }) => {
     if (email === 'test@example.com' && password === 'password123') {
       return { data: { user: { id: 'test-user-id', email } }, error: null };

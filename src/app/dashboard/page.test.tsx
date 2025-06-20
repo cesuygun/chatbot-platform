@@ -1,18 +1,32 @@
 import '@testing-library/jest-dom';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 import { vi } from 'vitest';
 import DashboardPage from './page';
-import { createBrowserClient } from '@supabase/ssr';
+import { AuthProvider } from '@/contexts/auth/AuthContext';
+import { getSupabase } from '@/lib/supabase/client';
 
 const mockUser = {
   id: 'test_user_id',
   email: 'test@example.com',
   user_metadata: {
     full_name: 'Test User',
+    subscribed: true,
   },
+  app_metadata: {},
+  aud: 'authenticated',
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  role: 'authenticated',
+  email_confirmed_at: '2024-01-01T00:00:00Z',
+  last_sign_in_at: '2024-01-01T00:00:00Z',
+  phone: '',
+  confirmation_sent_at: '2024-01-01T00:00:00Z',
+  confirmed_at: '2024-01-01T00:00:00Z',
+  is_anonymous: false,
+  identities: [],
 };
 
 const mockBots = [
@@ -39,8 +53,8 @@ vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
 }));
 
-vi.mock('@supabase/ssr', () => ({
-  createBrowserClient: vi.fn(),
+vi.mock('@/lib/supabase/client', () => ({
+  getSupabase: vi.fn(),
 }));
 
 const mockRouter = {
@@ -59,6 +73,31 @@ const createMockSupabaseClient = ({
   userProfile?: typeof mockUserProfile;
   authError?: { message: string } | null;
 } = {}) => {
+  // Helper to return a chainable object ending with a promise
+  const chainable = (finalValue: unknown, singleValue: unknown = null) => {
+    const makePromise = () => {
+      const promise: Promise<{ data: unknown; error: null }> = new Promise(resolve =>
+        resolve({ data: finalValue, error: null })
+      );
+      (promise as unknown as { select: () => Promise<{ data: unknown; error: null }> }).select =
+        () => makePromise();
+      (promise as unknown as { eq: () => Promise<{ data: unknown; error: null }> }).eq = () =>
+        makePromise();
+      (promise as unknown as { order: () => Promise<{ data: unknown; error: null }> }).order = () =>
+        makePromise();
+      (promise as unknown as { limit: () => Promise<{ data: unknown; error: null }> }).limit = () =>
+        makePromise();
+      (promise as unknown as { insert: () => Promise<{ data: unknown; error: null }> }).insert =
+        () => makePromise();
+      (promise as unknown as { delete: () => Promise<{ data: unknown; error: null }> }).delete =
+        () => makePromise();
+      (promise as unknown as { single: () => Promise<{ data: unknown; error: null }> }).single =
+        () => Promise.resolve({ data: singleValue ?? finalValue, error: null });
+      return promise;
+    };
+    return makePromise();
+  };
+
   return {
     auth: {
       getUser: vi.fn().mockResolvedValue({
@@ -68,60 +107,45 @@ const createMockSupabaseClient = ({
       signOut: vi.fn().mockResolvedValue({ error: null }),
     },
     from: vi.fn().mockImplementation(table => {
-      // For bots table
       if (table === 'bots') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          insert: vi.fn().mockReturnThis(),
-          delete: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          order: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: bots[0],
-            error: null,
-          }),
-          then: vi.fn().mockImplementation(callback =>
-            Promise.resolve().then(() =>
-              callback({
-                data: bots,
-                error: null,
-              })
-            )
-          ),
-        };
+        return chainable([...bots], { ...bots[0] });
+      } else if (table === 'users') {
+        return chainable({ ...userProfile });
       }
-      // For users table
-      else if (table === 'users') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: userProfile,
-            error: null,
-          }),
-        };
-      }
-
-      // Default return
-      return {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: null,
-          error: null,
-        }),
-      };
+      return chainable(null);
     }),
   };
 };
+
+// Mock the AuthProvider context
+const mockAuthState = {
+  user: mockUser as typeof mockUser | null,
+  loading: false,
+  signIn: vi.fn(),
+  signUp: vi.fn(),
+  signOut: vi.fn(),
+  resetPassword: vi.fn(),
+};
+
+const useAuthMock = () => mockAuthState;
+
+vi.mock('@/contexts/auth/AuthContext', () => ({
+  useAuth: () => useAuthMock(),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();
   (useRouter as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(mockRouter);
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'test_url';
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test_key';
+  // Reset mock state
+  mockAuthState.user = mockUser;
+  mockAuthState.loading = false;
+  mockAuthState.signIn.mockClear();
+  mockAuthState.signUp.mockClear();
+  mockAuthState.signOut.mockClear();
+  mockAuthState.resetPassword.mockClear();
 });
 
 afterEach(() => {
@@ -130,19 +154,21 @@ afterEach(() => {
   delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 });
 
+// Helper function to render with AuthProvider
+const renderWithAuth = (component: React.ReactElement) => {
+  return render(<AuthProvider>{component}</AuthProvider>);
+};
+
 describe('DashboardPage', () => {
   it('renders dashboard with user information', async () => {
     const mockSupabaseClient = createMockSupabaseClient({});
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
+    (getSupabase as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
       mockSupabaseClient
     );
 
-    render(<DashboardPage />);
+    renderWithAuth(<DashboardPage />);
 
-    // First verify we see the loading state
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
-
-    // Then wait for the dashboard to render
+    // Wait for the dashboard to render
     await waitFor(() => {
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
       expect(screen.getByText('test@example.com')).toBeInTheDocument();
@@ -150,300 +176,156 @@ describe('DashboardPage', () => {
   });
 
   it('redirects to login if user is not authenticated', async () => {
-    const mockSupabaseClient = createMockSupabaseClient({ user: null });
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
-      mockSupabaseClient
-    );
-
-    render(<DashboardPage />);
-
+    // Mock useAuth to return no user
+    mockAuthState.user = null;
+    mockAuthState.loading = false;
+    renderWithAuth(<DashboardPage />);
     await waitFor(() => {
       expect(mockRouter.push).toHaveBeenCalledWith('/login');
     });
   });
 
   it('handles authentication error', async () => {
-    const mockSupabaseClient = createMockSupabaseClient({
-      user: null,
-      authError: { message: 'Authentication error' },
-    });
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
-      mockSupabaseClient
-    );
-
-    render(<DashboardPage />);
-
+    // Mock useAuth to return no user
+    mockAuthState.user = null;
+    mockAuthState.loading = false;
+    renderWithAuth(<DashboardPage />);
     await waitFor(() => {
       expect(mockRouter.push).toHaveBeenCalledWith('/login');
     });
   });
 
   it('displays loading state while fetching user data', async () => {
-    const mockSupabaseClient = {
-      auth: {
-        getUser: vi.fn().mockImplementation(
-          () =>
-            new Promise(resolve => {
-              setTimeout(() => {
-                resolve({
-                  data: { user: null },
-                  error: null,
-                });
-              }, 100);
-            })
-        ),
-      },
-    };
-
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
-      mockSupabaseClient
-    );
-
-    render(<DashboardPage />);
-
+    // Mock useAuth to return loading state
+    mockAuthState.user = mockUser;
+    mockAuthState.loading = true;
+    renderWithAuth(<DashboardPage />);
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
 
   it('renders dashboard with user info, bots, and subscription', async () => {
-    const mockSupabaseClient = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: mockUser },
-          error: null,
-        }),
-      },
-      from: vi.fn().mockImplementation(table => {
-        if (table === 'bots') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: mockBots,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        } else if (table === 'users') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: mockUserProfile,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: [],
-                error: null,
-              }),
-            }),
-          }),
-        };
-      }),
-    };
-
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
+    const mockSupabaseClient = createMockSupabaseClient({});
+    (getSupabase as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
       mockSupabaseClient
     );
 
-    render(<DashboardPage />);
+    renderWithAuth(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
-      expect(screen.getByText(mockUser.email)).toBeInTheDocument();
+      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('test@example.com')).toBeInTheDocument();
+      expect(screen.getByText('Active')).toBeInTheDocument();
     });
   });
 
   it("displays list of user's bots", async () => {
-    const mockSupabaseClient = {
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: mockUser },
-          error: null,
-        }),
-      },
-      from: vi.fn().mockImplementation(table => {
-        if (table === 'bots') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: mockBots,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        } else if (table === 'users') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: mockUserProfile,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: [],
-                error: null,
-              }),
-            }),
-          }),
-        };
-      }),
-    };
-
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
+    const mockSupabaseClient = createMockSupabaseClient({});
+    (getSupabase as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
       mockSupabaseClient
     );
 
-    render(<DashboardPage />);
+    renderWithAuth(<DashboardPage />);
 
-    await waitFor(async () => {
-      for (const bot of mockBots) {
-        expect(await screen.findByText(bot.name)).toBeInTheDocument();
-      }
+    await waitFor(() => {
+      expect(screen.getByText('SupportBot')).toBeInTheDocument();
+      expect(screen.getByText('SalesBot')).toBeInTheDocument();
     });
   });
 
   it('creates a new bot', async () => {
     const mockSupabaseClient = createMockSupabaseClient({});
-
-    // Add specific mocking for the bot creation path
-    mockSupabaseClient.from = vi.fn().mockImplementation(table => {
-      if (table === 'bots') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          insert: vi.fn().mockReturnThis(),
-          limit: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: {
-              id: 'bot_3',
-              name: 'NewBot',
-              user_id: 'test_user_id',
-              created_at: '2024-01-03T00:00:00Z',
-            },
-            error: null,
-          }),
-        };
-      }
-      return {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: mockUserProfile,
-          error: null,
-        }),
-      };
-    });
-
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
+    (getSupabase as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
       mockSupabaseClient
     );
 
-    render(<DashboardPage />);
+    renderWithAuth(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+      expect(screen.getByText('Create New Bot')).toBeInTheDocument();
     });
 
     const nameInput = screen.getByLabelText(/bot name/i);
-    const createButton = screen.getByTestId('create-bot-submit');
+    const createButton = screen.getByRole('button', { name: /create bot/i });
 
     await userEvent.type(nameInput, 'NewBot');
-
-    // Find and click the submit button instead of submitting the form directly
     await userEvent.click(createButton);
 
-    expect(mockSupabaseClient.from).toHaveBeenCalledWith('bots');
+    await waitFor(() => {
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('bots');
+    });
   });
 
   it('deletes a bot', async () => {
     const mockSupabaseClient = createMockSupabaseClient({});
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
+    (getSupabase as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
       mockSupabaseClient
     );
 
-    render(<DashboardPage />);
+    renderWithAuth(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+      expect(screen.getByText('SupportBot')).toBeInTheDocument();
     });
 
-    // Find and click delete button instead of submitting the form
-    const deleteForms = await screen.findAllByTestId('delete-bot-form');
-    const deleteButton = within(deleteForms[0]).getByRole('button', { name: /delete/i });
-    await userEvent.click(deleteButton);
+    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    await userEvent.click(deleteButtons[0]);
 
-    expect(mockSupabaseClient.from).toHaveBeenCalledWith('bots');
+    await waitFor(() => {
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('bots');
+    });
   });
 
   it('handles logout', async () => {
     const mockSupabaseClient = createMockSupabaseClient({});
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
+    (getSupabase as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
       mockSupabaseClient
     );
 
-    render(<DashboardPage />);
+    renderWithAuth(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument();
     });
 
-    // Find and click logout button instead of submitting the form
-    const logoutForm = screen.getByTestId('logout-form');
-    const logoutButton = within(logoutForm).getByRole('button', { name: /logout/i });
+    const logoutButton = screen.getByRole('button', { name: /logout/i });
     await userEvent.click(logoutButton);
 
-    expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
-    expect(mockRouter.push).toHaveBeenCalledWith('/login');
+    await waitFor(() => {
+      expect(mockAuthState.signOut).toHaveBeenCalled();
+      expect(mockRouter.push).toHaveBeenCalledWith('/login');
+    });
   });
 
   it('displays subscription status correctly', async () => {
-    // Test for subscribed user
-    const mockSupabaseClient = createMockSupabaseClient({
-      userProfile: { id: 'test_user_id', subscribed: true },
-    });
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
+    const mockSupabaseClient = createMockSupabaseClient({});
+    (getSupabase as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
       mockSupabaseClient
     );
 
-    render(<DashboardPage />);
+    renderWithAuth(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+      expect(screen.getByText('Active')).toBeInTheDocument();
     });
-
-    expect(screen.getByText(/premium subscription/i)).toBeInTheDocument();
   });
 
   it('shows subscription management button', async () => {
+    // Mock useAuth to return user without subscription
+    mockAuthState.user = {
+      ...mockUser,
+      user_metadata: {
+        ...mockUser.user_metadata,
+        subscribed: false,
+      },
+    };
+    mockAuthState.loading = false;
     const mockSupabaseClient = createMockSupabaseClient({});
-    (createBrowserClient as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
+    (getSupabase as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue(
       mockSupabaseClient
     );
-
-    render(<DashboardPage />);
-
+    renderWithAuth(<DashboardPage />);
     await waitFor(() => {
-      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+      expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument();
     });
-
-    expect(screen.getByRole('button', { name: /subscribe/i })).toBeInTheDocument();
   });
 });
