@@ -16,7 +16,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { getErrorMessage } from '@/lib/errors';
-import { AuthProvider } from '@/contexts/auth/AuthContext';
 
 const LoginPageClient = () => {
   const router = useRouter();
@@ -24,7 +23,16 @@ const LoginPageClient = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
+
+  // Get redirectTo param from URL
+  React.useEffect(() => {
+    if (!authLoading && user) {
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get('redirectTo') || '/dashboard';
+      router.push(redirectTo);
+    }
+  }, [user, authLoading, router]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -54,7 +62,6 @@ const LoginPageClient = () => {
     try {
       const { error } = await signIn(email, password);
       if (error) throw error;
-      router.push('/dashboard');
     } catch (err) {
       setError(getErrorMessage(err, 'login'));
     } finally {
@@ -129,10 +136,4 @@ const LoginPageClient = () => {
   );
 };
 
-const LoginPageClientWithProvider = () => (
-  <AuthProvider>
-    <LoginPageClient />
-  </AuthProvider>
-);
-
-export default LoginPageClientWithProvider;
+export default LoginPageClient;

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { SupabaseProvider } from '@/contexts';
+import { AuthProvider } from '@/contexts/auth/AuthProvider';
 import { ConsentBanner } from '@/components/gdpr/ConsentBanner';
 
 const geistSans = Geist({
@@ -27,7 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SupabaseProvider>{children}</SupabaseProvider>
+        <SupabaseProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </SupabaseProvider>
         <ConsentBanner />
       </body>
     </html>

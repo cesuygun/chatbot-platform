@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
-import LoginPageClientWithProvider from './LoginPageClient';
+import LoginPageClient from './LoginPageClient';
 
 export default function LoginPage() {
-  return <LoginPageClientWithProvider />;
+  return <LoginPageClient />;
 }

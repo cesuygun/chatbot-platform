@@ -1,112 +1,83 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Copy } from 'lucide-react';
+import { useAuth } from '@/contexts/auth/AuthContext';
+import { getSupabase } from '@/lib/supabase/client';
 
 const BOTS_TABLE = 'bots';
-const USERS_TABLE = 'users'; // Define constant for users table
+const USERS_TABLE = 'users';
 
 // Local types
 interface Bot {
   id: string;
   name: string;
 }
-interface User {
-  id: string;
-  email?: string;
-  user_metadata?: {
-    full_name?: string;
-    subscribed?: boolean;
-  };
-}
 
 const DashboardPage = () => {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading: authLoading, signOut } = useAuth();
   const [bots, setBots] = useState<Bot[]>([]);
-  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
-  const initializationRef = useRef(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
+  const [selectedBot, setSelectedBot] = useState<Bot | null>(null);
+  const [copied, setCopied] = useState(false);
 
+  // Redirect to login if not authenticated
   useEffect(() => {
-    // Skip if already initialized to prevent double execution in development
-    if (initializationRef.current) return;
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Missing Supabase environment variables');
+    if (!authLoading && !user) {
+      router.push('/login');
     }
+  }, [user, authLoading, router]);
 
-    const client = createBrowserClient(supabaseUrl, supabaseAnonKey);
-    setSupabase(client);
-
-    const initialize = async () => {
-      try {
-        const {
-          data: { user },
-          error: userError,
-        } = await client.auth.getUser();
-        if (userError || !user) {
-          setAuthChecked(true);
-          router.push('/login');
-          return;
-        }
-
-        setUser(user);
-        setAuthChecked(true);
-
-        const { data: botsData, error: botsError } = await client
-          .from(BOTS_TABLE)
-          .select('id, name')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (!botsError) {
-          setBots(botsData || []);
-        }
-
-        // First check if the users table exists
+  // Load bots when user is authenticated
+  useEffect(() => {
+    if (user && !authLoading) {
+      const loadBots = async () => {
         try {
-          const { error: profileError } = await client
-            .from(USERS_TABLE)
-            .select('subscribed')
-            .eq('id', user.id)
-            .single();
+          const supabase = getSupabase();
+          const { data: botsData, error: botsError } = await supabase
+            .from(BOTS_TABLE)
+            .select('id, name')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
 
-          if (profileError && profileError.code === '42P01') {
-            // Table doesn't exist
-            console.error(
-              "Users table doesn't exist. Please create it with the SQL script provided."
-            );
+          if (!botsError) {
+            setBots((botsData as Bot[]) || []);
+          }
+
+          // Check user subscription status
+          try {
+            const { error: profileError } = await supabase
+              .from(USERS_TABLE)
+              .select('subscribed')
+              .eq('id', user.id)
+              .single();
+
+            if (profileError && profileError.code === '42P01') {
+              console.error("Users table doesn't exist. Please create it with the SQL script provided.");
+            }
+          } catch (error) {
+            console.error('Error fetching user profile:', error);
           }
         } catch (error) {
-          console.error('Error fetching user profile:', error);
+          console.error('Error loading bots:', error);
         }
-      } catch (error) {
-        console.error('Error initializing dashboard:', error);
-        setAuthChecked(true);
-        router.push('/login');
-      } finally {
-        // Loading complete
-        setAuthChecked(true);
-      }
-    };
+      };
 
-    initialize();
-    // Mark as initialized to prevent double execution
-    initializationRef.current = true;
-  }, [router]);
+      loadBots();
+    }
+  }, [user, authLoading]);
 
-  // Don't render anything until auth check is complete
-  if (!authChecked) {
+  // Show loading while checking authentication
+  if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -116,39 +87,25 @@ const DashboardPage = () => {
     );
   }
 
-  // If auth check is complete but we don't have a user, don't render
-  // as we should already be redirecting
-  if (authChecked && !user) {
+  // Don't render if not authenticated (should redirect)
+  if (!user) {
     return null;
   }
 
   const handleLogout = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!supabase) {
-      console.error('Supabase client not initialized');
-      return;
-    }
-
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        return;
-      }
-      // Clear local state
-      setUser(null);
-      setBots([]);
-      // Redirect to login page
+      await signOut();
       router.push('/login');
     } catch (error) {
-      console.error('Unexpected error during logout:', error);
+      console.error('Error signing out:', error);
     }
   };
 
   const handleCreateBot = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user || !supabase) {
-      console.error('Missing user or supabase client:', { user, supabase });
+    if (!user) {
+      console.error('User not authenticated');
       return;
     }
 
@@ -162,25 +119,25 @@ const DashboardPage = () => {
     try {
       console.log('Creating bot with data:', { name, user_id: user.id });
 
+      const supabase = getSupabase();
+
       // First, check if the table exists
       const { error: tableCheckError } = await supabase.from(BOTS_TABLE).select('id').limit(1);
 
       if (tableCheckError) {
         console.error('Error checking bots table:', tableCheckError);
-        // If the table doesn't exist, we'll get a specific error
         if (tableCheckError.code === '42P01') {
-          // PostgreSQL error code for undefined_table
           console.error(
             'Bots table does not exist. Please create it in Supabase with the following structure:'
           );
           console.error(`
-						CREATE TABLE bots (
-							id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-							name TEXT NOT NULL,
-							user_id UUID NOT NULL REFERENCES auth.users(id),
-							created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-						);
-					`);
+            CREATE TABLE bots (
+              id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+              name TEXT NOT NULL,
+              user_id UUID NOT NULL REFERENCES auth.users(id),
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+            );
+          `);
           return;
         }
         return;
@@ -194,171 +151,213 @@ const DashboardPage = () => {
         .single();
 
       if (error) {
-        console.error('Supabase error creating bot:', {
-          error,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
+        console.error('Error creating bot:', error);
         return;
       }
 
-      if (data) {
-        console.log('Bot created successfully:', data);
-        setBots(prev => [data, ...prev]);
-        if (e.currentTarget && typeof (e.currentTarget as HTMLFormElement).reset === 'function') {
-          (e.currentTarget as HTMLFormElement).reset();
-        }
-      } else {
-        console.error('No data returned after bot creation');
+      console.log('Bot created successfully:', data);
+      if (data && typeof data === 'object' && 'id' in data && 'name' in data) {
+        setBots(prevBots => [{ id: data.id as string, name: data.name as string }, ...prevBots]);
       }
+
+      // Reset form
+      e.currentTarget.reset();
     } catch (error) {
       console.error('Unexpected error creating bot:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        });
-      }
     }
   };
 
   const handleDeleteBot = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user || !supabase) return;
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
-    const id = formData.get('id') as string;
-    if (!id) return;
+    const botId = formData.get('botId') as string;
+    if (!botId) {
+      console.error('Bot ID is required');
+      return;
+    }
 
-    const { error } = await supabase.from(BOTS_TABLE).delete().eq('id', id);
+    try {
+      const supabase = getSupabase();
+      const { error } = await supabase.from(BOTS_TABLE).delete().eq('id', botId).eq('user_id', user.id);
 
-    if (!error) {
-      setBots(prev => prev.filter(bot => bot.id !== id));
+      if (error) {
+        console.error('Error deleting bot:', error);
+        return;
+      }
+
+      setBots(prevBots => prevBots.filter(bot => bot.id !== botId));
+    } catch (error) {
+      console.error('Unexpected error deleting bot:', error);
+    }
+  };
+
+  const handleOpenEmbedDialog = (bot: Bot) => {
+    setSelectedBot(bot);
+    setEmbedDialogOpen(true);
+  };
+
+  const handleCloseEmbedDialog = () => {
+    setEmbedDialogOpen(false);
+    setSelectedBot(null);
+    setCopied(false);
+  };
+
+  const handleCopyEmbedCode = () => {
+    if (selectedBot) {
+      const embedCode = `<script src="${window.location.origin}/embed.js"></script>
+<div id="chatbot-widget" data-bot-id="${selectedBot.id}"></div>`;
+      
+      navigator.clipboard.writeText(embedCode).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
     }
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold" data-testid="dashboard-title">
-          Dashboard
-        </h1>
         <div>
-          {user?.email && (
-            <span className="mr-4" data-testid="user-email">
-              {user.email}
-            </span>
-          )}
-          <form onSubmit={handleLogout} data-testid="logout-form">
-            <Button type="submit" data-testid="logout-button">
-              Logout
-            </Button>
-          </form>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-gray-600">
+            Welcome back, {user.user_metadata?.full_name || user.email}
+          </p>
         </div>
+        <form onSubmit={handleLogout}>
+          <Button type="submit" variant="outline">
+            Logout
+          </Button>
+        </form>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Bots</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold" data-testid="total-bots">
-              {bots.length}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Subscription Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-3xl font-bold" data-testid="subscription-status">
-                {user?.user_metadata?.subscribed ? 'Active' : 'Inactive'}
-              </p>
-              {user?.user_metadata?.subscribed ? (
-                <p className="text-green-600 font-semibold" data-testid="premium-subscription">
-                  Premium Subscription
-                </p>
-              ) : (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Upgrade to Premium Subscription
-                  </p>
-                  <Button onClick={() => router.push('/pricing')} data-testid="subscribe-button">
-                    Subscribe
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-8 md:grid-cols-2">
+        {/* Create Bot Section */}
         <Card>
           <CardHeader>
             <CardTitle>Create New Bot</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreateBot} data-testid="create-bot-form">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Bot Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    placeholder="Enter bot name"
-                    required
-                    data-testid="bot-name-input"
-                  />
-                </div>
-                <Button type="submit" data-testid="create-bot-submit">
-                  Create Bot
-                </Button>
+            <form onSubmit={handleCreateBot} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Bot Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  placeholder="Enter bot name"
+                />
               </div>
+              <Button type="submit" className="w-full">
+                Create Bot
+              </Button>
             </form>
           </CardContent>
         </Card>
 
+        {/* User Info Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Your Bots</CardTitle>
+            <CardTitle>Account Information</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4" data-testid="bots-list">
-              {bots.length === 0 ? (
-                <p>No bots created yet</p>
-              ) : (
-                bots.map(bot => (
-                  <div
-                    key={bot.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                    data-testid={`bot-item-${bot.id}`}
-                  >
-                    <span data-testid={`bot-name-${bot.id}`}>{bot.name}</span>
-                    <form onSubmit={handleDeleteBot} data-testid="delete-bot-form">
-                      <input type="hidden" name="id" value={bot.id} />
-                      <Button
-                        type="submit"
-                        variant="destructive"
-                        data-testid={`delete-bot-button-${bot.id}`}
-                      >
+          <CardContent className="space-y-4">
+            <div>
+              <Label>Email</Label>
+              <p className="text-sm text-gray-600">{user.email}</p>
+            </div>
+            <div>
+              <Label>Subscription Status</Label>
+              <p className="text-sm text-gray-600">
+                {user.user_metadata?.subscribed ? 'Active' : 'Free Plan'}
+              </p>
+            </div>
+            {!user.user_metadata?.subscribed && (
+              <Button
+                onClick={() => router.push('/pricing')}
+                className="w-full"
+              >
+                Upgrade to Pro
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bots List */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Your Bots</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {bots.length === 0 ? (
+            <p className="text-gray-500">No bots created yet. Create your first bot above.</p>
+          ) : (
+            <div className="space-y-4">
+              {bots.map(bot => (
+                <div
+                  key={bot.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div>
+                    <h3 className="font-medium">{bot.name}</h3>
+                    <p className="text-sm text-gray-500">ID: {bot.id}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenEmbedDialog(bot)}
+                    >
+                      Get Embed Code
+                    </Button>
+                    <form onSubmit={handleDeleteBot} className="inline">
+                      <input type="hidden" name="botId" value={bot.id} />
+                      <Button type="submit" variant="destructive" size="sm">
                         Delete
                       </Button>
                     </form>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Embed Code Dialog */}
+      <Dialog open={embedDialogOpen} onOpenChange={setEmbedDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Embed Code for {selectedBot?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Copy and paste this code into your website to embed the chatbot:
+            </p>
+            <Textarea
+              value={selectedBot ? `<script src="${window.location.origin}/embed.js"></script>
+<div id="chatbot-widget" data-bot-id="${selectedBot.id}"></div>` : ''}
+              readOnly
+              className="font-mono text-sm"
+              rows={4}
+            />
+            <DialogFooter>
+              <Button onClick={handleCopyEmbedCode} disabled={copied}>
+                {copied ? 'Copied!' : <Copy className="w-4 h-4 mr-2" />}
+                Copy Code
+              </Button>
+              <Button variant="outline" onClick={handleCloseEmbedDialog}>
+                Close
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

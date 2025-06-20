@@ -1,8 +1,8 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { createClient } from '@supabase/supabase-js';
 
 // Create a new ratelimiter that allows 10 requests per 10 seconds
 const ratelimit = new Ratelimit({
@@ -15,11 +15,20 @@ const ratelimit = new Ratelimit({
 // List of paths that should be excluded from rate limiting
 const EXCLUDED_PATHS = ['/api/stripe/checkout', '/api/stripe/webhook'];
 
-// List of paths that require authentication
-const PROTECTED_PATHS = ['/dashboard', '/settings', '/chatbot-builder'];
-
 // List of paths that should redirect to dashboard if user is authenticated
 const AUTH_PATHS = ['/login', '/register', '/forgot-password'];
+
+// Create Supabase client for middleware (same pattern as app)
+const createSupabaseClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false, // Don't persist in middleware
+      autoRefreshToken: false, // Don't auto-refresh in middleware
+    },
+  });
+};
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -52,16 +61,19 @@ export async function middleware(request: NextRequest) {
 
   // Handle authentication
   const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req: request, res });
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // Redirect to login if accessing protected route without session
-  if (PROTECTED_PATHS.some(path => pathname.startsWith(path)) && !session) {
-    const redirectUrl = new URL('/login', request.url);
-    redirectUrl.searchParams.set('redirectTo', pathname);
-    return NextResponse.redirect(redirectUrl);
+  const supabase = createSupabaseClient();
+  
+  // Get session from cookies
+  const authCookie = request.cookies.get('sb-zwtfokiutwdssyhdarbw-auth-token');
+  let session = null;
+  
+  if (authCookie) {
+    try {
+      const { data: { session: sessionData } } = await supabase.auth.getSession();
+      session = sessionData;
+    } catch (error) {
+      console.error('Error getting session in middleware:', error);
+    }
   }
 
   // Redirect to dashboard if accessing auth pages with session

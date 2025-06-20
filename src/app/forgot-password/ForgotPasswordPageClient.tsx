@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { AuthProvider } from '@/contexts/auth/AuthContext';
 
 const ForgotPasswordPageClient = () => {
   const [email, setEmail] = useState('');
@@ -84,10 +83,4 @@ const ForgotPasswordPageClient = () => {
   );
 };
 
-const ForgotPasswordPageClientWithProvider = () => (
-  <AuthProvider>
-    <ForgotPasswordPageClient />
-  </AuthProvider>
-);
-
-export default ForgotPasswordPageClientWithProvider;
+export default ForgotPasswordPageClient;

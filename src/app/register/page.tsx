@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/card';
 import { getErrorMessage } from '@/lib/errors';
 import { redirectWithTimeout } from './utils';
-import { AuthProvider } from '@/contexts/auth/AuthContext';
 
 const RegisterPage = () => {
   const router = useRouter();
@@ -165,10 +164,4 @@ const RegisterPage = () => {
   );
 };
 
-const RegisterPageWithProvider = () => (
-  <AuthProvider>
-    <RegisterPage />
-  </AuthProvider>
-);
-
-export default RegisterPageWithProvider;
+export default RegisterPage;
