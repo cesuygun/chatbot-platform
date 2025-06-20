@@ -57,6 +57,25 @@ describe('LoginPage', () => {
   it('handles successful login and redirects to dashboard', async () => {
     mockSignIn.mockResolvedValueOnce({ error: null });
 
+    // Mock user state change after successful login
+    const mockUser = {
+      id: 'test-user-id',
+      email: 'test@example.com',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      role: 'authenticated',
+      email_confirmed_at: '2024-01-01T00:00:00Z',
+      last_sign_in_at: '2024-01-01T00:00:00Z',
+      phone: '',
+      confirmation_sent_at: '2024-01-01T00:00:00Z',
+      confirmed_at: '2024-01-01T00:00:00Z',
+      is_anonymous: false,
+      identities: [],
+    };
+    
     render(<LoginPage />);
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
@@ -66,8 +85,23 @@ describe('LoginPage', () => {
     await userEvent.type(passwordInput, 'password123');
     await userEvent.click(submitButton);
 
+    // Wait for signIn to be called
     await waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
+    });
+
+    // Simulate user state change by updating the mock
+    vi.mocked(useAuth).mockReturnValue({
+      ...mockAuth,
+      user: mockUser,
+      loading: false,
+    });
+
+    // Re-render to trigger useEffect
+    render(<LoginPage />);
+
+    // Wait for redirect
+    await waitFor(() => {
       expect(mockRouter.push).toHaveBeenCalledWith('/dashboard');
     });
   });
