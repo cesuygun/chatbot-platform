@@ -2,17 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
-import { headers } from 'next/headers';
-
-// Mock next/headers
-vi.mock('next/headers', () => ({
-  headers: vi.fn().mockResolvedValue({
-    get: vi.fn().mockImplementation((key) => {
-      if (key === 'stripe-signature') return 'test_signature';
-      return null;
-    }),
-  }),
-}));
 
 // Mock the getStripe function
 vi.mock('@/lib/stripe', () => ({
@@ -32,8 +21,8 @@ vi.mock('@/lib/stripe', () => ({
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn().mockImplementation(() => ({
     from: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockResolvedValue({ error: null }),
     update: vi.fn().mockReturnThis(),
-    upsert: vi.fn().mockResolvedValue({ error: null }),
     eq: vi.fn().mockResolvedValue({ error: null }),
   })),
 }));
@@ -48,12 +37,11 @@ const baseMockEvent = {
     object: {
       id: 'cs_test',
       object: 'checkout.session',
-      metadata: { planId: 'test_plan' },
+      metadata: { userId: 'user_test' },
       status: 'complete',
       payment_status: 'paid',
       subscription: 'sub_test',
       customer: 'cus_test',
-      client_reference_id: 'user_test',
       amount_total: 1000,
       currency: 'usd',
       customer_details: {
@@ -85,6 +73,9 @@ describe('Stripe Webhook', () => {
 
     const req = new NextRequest('http://localhost:3000/api/stripe/webhook', {
       method: 'POST',
+      headers: {
+        'stripe-signature': 'test_signature',
+      },
       body: JSON.stringify(mockEvent),
     });
 
@@ -114,6 +105,9 @@ describe('Stripe Webhook', () => {
 
     const req = new NextRequest('http://localhost:3000/api/stripe/webhook', {
       method: 'POST',
+      headers: {
+        'stripe-signature': 'test_signature',
+      },
       body: JSON.stringify(mockEvent),
     });
 
@@ -143,6 +137,9 @@ describe('Stripe Webhook', () => {
 
     const req = new NextRequest('http://localhost:3000/api/stripe/webhook', {
       method: 'POST',
+      headers: {
+        'stripe-signature': 'test_signature',
+      },
       body: JSON.stringify(mockEvent),
     });
 
@@ -156,11 +153,6 @@ describe('Stripe Webhook', () => {
   it('should return 400 if webhook signature verification fails', async () => {
     const mockEvent = { ...baseMockEvent };
 
-    // Mock headers to return null for stripe-signature
-    vi.mocked(headers).mockResolvedValueOnce({
-      get: vi.fn().mockReturnValue(null),
-    } as unknown as Headers);
-
     const req = new NextRequest('http://localhost:3000/api/stripe/webhook', {
       method: 'POST',
       body: JSON.stringify(mockEvent),
@@ -170,7 +162,7 @@ describe('Stripe Webhook', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Webhook handler failed' });
+    expect(data).toEqual({ error: 'Missing stripe signature' });
   });
 
   it('should handle unsupported event types', async () => {
@@ -181,6 +173,9 @@ describe('Stripe Webhook', () => {
 
     const req = new NextRequest('http://localhost:3000/api/stripe/webhook', {
       method: 'POST',
+      headers: {
+        'stripe-signature': 'test_signature',
+      },
       body: JSON.stringify(mockEvent),
     });
 
@@ -199,6 +194,9 @@ describe('Stripe Webhook', () => {
 
     const req = new NextRequest('http://localhost:3000/api/stripe/webhook', {
       method: 'POST',
+      headers: {
+        'stripe-signature': 'test_signature',
+      },
       body: JSON.stringify(mockEvent),
     });
 
@@ -206,6 +204,6 @@ describe('Stripe Webhook', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Webhook handler failed' });
+    expect(data).toEqual({ error: 'Missing environment variables' });
   });
 });

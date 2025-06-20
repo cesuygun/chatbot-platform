@@ -2,11 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getStripe } from '@/lib/stripe';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 const PRICE_IDS = {
   free: {
     monthly: null,
@@ -29,6 +24,12 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
+
+    // Initialize Supabase client lazily
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Initialize Stripe client lazily
     const stripe = getStripe();
