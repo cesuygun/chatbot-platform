@@ -1,37 +1,33 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { getStripe, invoiceSchema, formatStripeDate } from '@/lib/stripe';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const supabase = await createClient();
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    // Initialize Supabase client lazily
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const userId = user.id;
 
     // Initialize Stripe client lazily
     const stripe = getStripe();
 
     // Get user's Stripe customer ID from Supabase
     const { data: userData, error: userError } = await supabase
-      .from('users')
+      .from('customers')
       .select('stripe_customer_id')
       .eq('id', userId)
       .single();
 
     if (userError || !userData?.stripe_customer_id) {
-      return NextResponse.json(
-        { error: 'User not found or no Stripe customer ID' },
-        { status: 404 }
-      );
+      // Return empty invoices array instead of 404 error
+      return NextResponse.json({ invoices: [] });
     }
 
     // Get invoices from Stripe
