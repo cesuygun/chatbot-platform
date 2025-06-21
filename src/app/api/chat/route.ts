@@ -1,35 +1,107 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+import { OpenAI } from '@langchain/openai';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import {
+  RunnableSequence,
+  RunnablePassthrough,
+} from '@langchain/core/runnables';
+import { PromptTemplate } from '@langchain/core/prompts';
 
-export async function POST(request: Request) {
+export const dynamic = 'force-dynamic';
+
+const supabaseClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+const embeddings = new OpenAIEmbeddings({
+  openAIApiKey: process.env.OPEN_AI_KEY,
+});
+
+const llm = new OpenAI({
+    openAIApiKey: process.env.OPEN_AI_KEY,
+});
+
+const condenseQuestionTemplate = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
+
+Chat History:
+{chat_history}
+
+Follow Up Input: {question}
+Standalone question:`;
+const CONDENSE_QUESTION_PROMPT = PromptTemplate.fromTemplate(
+  condenseQuestionTemplate
+);
+
+const answerTemplate = `You are an expert customer support agent for a company. Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+Context:
+{context}
+
+Question: {question}
+Helpful Answer:`;
+const ANSWER_PROMPT = PromptTemplate.fromTemplate(answerTemplate);
+
+const formatChatHistory = (chatHistory: [string, string][]) => {
+  const formattedDialogueTurns = chatHistory.map(
+    (dialogueTurn) => `Human: ${dialogueTurn[0]}\nAssistant: ${dialogueTurn[1]}`
+  );
+  return formattedDialogueTurns.join('\n');
+};
+
+export async function POST(req: NextRequest) {
   try {
-    const { botId, message } = await request.json();
+    const { question, chatbotId, chat_history } = await req.json();
 
-    if (!botId || !message) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!question || !chatbotId) {
+      return NextResponse.json({ error: 'Question and chatbotId are required' }, { status: 400 });
     }
 
-    const supabase = createRouteHandlerClient({ cookies });
+    const vectorStore = new SupabaseVectorStore(embeddings, {
+      client: supabaseClient,
+      tableName: 'knowledge_embeddings',
+      queryName: 'match_documents',
+      filter: { chatbot_id: chatbotId },
+    });
 
-    // Get the bot details
-    const { data: bot, error: botError } = await supabase
-      .from('bots')
-      .select('model')
-      .eq('id', botId)
-      .single();
+    const standaloneQuestionChain = RunnableSequence.from([
+      {
+        question: (input: { question: string; chat_history: [string, string][] }) =>
+          input.question,
+        chat_history: (input: { question: string; chat_history: [string, string][] }) =>
+          formatChatHistory(input.chat_history),
+      },
+      CONDENSE_QUESTION_PROMPT,
+      llm,
+      new StringOutputParser(),
+    ]);
 
-    if (botError || !bot) {
-      return NextResponse.json({ error: 'Bot not found' }, { status: 404 });
-    }
+    const retriever = vectorStore.asRetriever();
 
-    // TODO: Implement actual AI model integration
-    // For now, return a mock response
-    const mockResponse = `I'm a ${bot.model} powered chatbot. You said: "${message}"`;
+    const answerChain = RunnableSequence.from([
+        {
+          context: retriever.pipe(docs => docs.map(d => d.pageContent).join('\n')),
+          question: new RunnablePassthrough(),
+        },
+        ANSWER_PROMPT,
+        llm,
+        new StringOutputParser(),
+    ]);
 
-    return NextResponse.json({ message: mockResponse });
+    const conversationalChain = standaloneQuestionChain.pipe(answerChain);
+
+    const result = await conversationalChain.invoke({
+        question: question,
+        chat_history: chat_history || [],
+    });
+
+    return NextResponse.json({ answer: result });
+
   } catch (error) {
-    console.error('Error in chat API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Chat API error:', error);
+    return NextResponse.json({ error: 'An internal error occurred' }, { status: 500 });
   }
 }

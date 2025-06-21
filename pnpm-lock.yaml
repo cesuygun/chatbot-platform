@@ -11,6 +11,9 @@ importers:
       '@langchain/community':
         specifier: ^0.2.19
         version: 0.2.33(@raycast/api@1.100.2(@types/node@20.19.0)(@types/react@18.3.23))(@supabase/supabase-js@2.50.0)(@upstash/ratelimit@2.0.5(@upstash/redis@1.35.0))(@upstash/redis@1.35.0)(ignore@5.3.2)(jsdom@26.1.0)(lodash@4.17.21)(openai@4.104.0(ws@8.18.2)(zod@3.25.64))(pdf-parse@1.1.1)(playwright@1.53.0)(ws@8.18.2)
+      '@langchain/core':
+        specifier: ^0.2.11
+        version: 0.2.36(openai@4.104.0(ws@8.18.2)(zod@3.25.64))
       '@langchain/openai':
         specifier: ^0.2.1
         version: 0.2.11(ws@8.18.2)

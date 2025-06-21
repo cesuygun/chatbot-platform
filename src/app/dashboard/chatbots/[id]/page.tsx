@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Upload, File, Trash2 } from 'lucide-react';
+import { ChatbotPreview } from '@/components/chatbot/ChatbotPreview';
 
 // Mock data for knowledge sources - this will be replaced with real data
 const mockSources = [
@@ -97,7 +98,11 @@ const KnowledgeBaseUploader = ({ chatbotId }: { chatbotId: string }) => {
 
 export default function ChatbotEditorPage({ params }: { params: { id: string } }) {
   // Mock data for the chatbot itself
-  const chatbot = { id: params.id, name: 'Customer Support Bot' };
+  const chatbot = {
+    id: params.id,
+    name: 'Customer Support Bot',
+    welcomeMessage: "Hi! I'm your support assistant. Ask me anything about our products.",
+  };
 
   return (
     <div className="p-8">
@@ -154,10 +159,8 @@ export default function ChatbotEditorPage({ params }: { params: { id: string } }
 
         <div>
           <h2 className="text-xl font-semibold mb-4">Chatbot Preview</h2>
-          <div className="border rounded-lg shadow-sm bg-white p-4 h-[600px]">
-            <p className="text-center text-gray-500">
-              A live preview of the chatbot will be rendered here.
-            </p>
+          <div className="border rounded-lg shadow-sm bg-white h-[600px]">
+            <ChatbotPreview chatbotId={chatbot.id} welcomeMessage={chatbot.welcomeMessage} />
           </div>
         </div>
       </div>
