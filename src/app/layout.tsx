@@ -3,7 +3,6 @@ export const dynamic = 'force-dynamic';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { SupabaseProvider } from '@/contexts';
 import { AuthProvider } from '@/contexts/auth/AuthProvider';
 import { ConsentBanner } from '@/components/gdpr/ConsentBanner';
 
@@ -30,9 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SupabaseProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </SupabaseProvider>
+        <AuthProvider>{children}</AuthProvider>
         <ConsentBanner />
       </body>
     </html>

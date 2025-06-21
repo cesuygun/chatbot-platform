@@ -127,8 +127,8 @@ interface PricingPlan {
   }[];
 }
 
-const getPrice = (plan: PricingPlan, interval: 'month' | 'year'): number => {
-  if (interval === 'year') {
+const getPrice = (plan: PricingPlan, interval: 'monthly' | 'yearly'): number => {
+  if (interval === 'yearly') {
     if (plan.price === 0) return 0;
     return Math.round(plan.price * MONTHS_IN_YEAR * (1 - YEARLY_DISCOUNT));
   }
@@ -136,7 +136,7 @@ const getPrice = (plan: PricingPlan, interval: 'month' | 'year'): number => {
 };
 
 export default function PricingPlans() {
-  const [interval, setInterval] = useState<'month' | 'year'>('month');
+  const [interval, setInterval] = useState<'monthly' | 'yearly'>('monthly');
   const router = useRouter();
   const { user } = useAuth();
 
@@ -147,22 +147,28 @@ export default function PricingPlans() {
     }
 
     try {
+      const plan = `${planId}_${interval}`;
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          planId,
-          interval,
+          plan,
           userId: user.id,
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Something went wrong');
+      }
 
       const { url } = await response.json();
       window.location.href = url;
     } catch (error) {
       console.error('Error creating checkout session:', error);
+      // You might want to show an error to the user here
     }
   };
 
@@ -170,14 +176,14 @@ export default function PricingPlans() {
     <div className="mt-16">
       <div className="flex justify-center gap-4 mb-8">
         <Button
-          variant={interval === 'month' ? 'default' : 'outline'}
-          onClick={() => setInterval('month')}
+          variant={interval === 'monthly' ? 'default' : 'outline'}
+          onClick={() => setInterval('monthly')}
         >
           Monthly
         </Button>
         <Button
-          variant={interval === 'year' ? 'default' : 'outline'}
-          onClick={() => setInterval('year')}
+          variant={interval === 'yearly' ? 'default' : 'outline'}
+          onClick={() => setInterval('yearly')}
         >
           Yearly
           <span className="ml-2 text-sm text-green-500">Save 20%</span>
@@ -195,8 +201,10 @@ export default function PricingPlans() {
               <CardTitle>{plan.name}</CardTitle>
               <CardDescription>{plan.description}</CardDescription>
               <div className="mt-4">
-                <span className="text-4xl font-bold">${getPrice(plan, interval)}</span>
-                <span className="text-muted-foreground">/{interval}</span>
+                <span className="text-4xl font-bold">€{getPrice(plan, interval)}</span>
+                <span className="text-muted-foreground">
+                  /{interval === 'monthly' ? 'mo' : 'yr'}
+                </span>
               </div>
             </CardHeader>
             <CardContent className="flex-grow">
@@ -221,7 +229,9 @@ export default function PricingPlans() {
                 className="w-full"
                 variant={plan.id === 'pro' ? 'default' : 'outline'}
                 onClick={() => {
-                  if (plan.id === 'enterprise') {
+                  if (plan.id === 'free') {
+                    router.push('/dashboard');
+                  } else if (plan.id === 'enterprise') {
                     window.location.href = 'mailto:sales@example.com';
                   } else {
                     handleSubscribe(plan.id);

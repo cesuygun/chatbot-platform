@@ -1,12 +1,13 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { Chatbot } from '@/types/chatbot';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const chatbotId = params.id;
+  const chatbotId = context.params.id;
   const body = await request.json();
 
   try {
@@ -53,13 +54,28 @@ export async function PATCH(
     }
 
     // Define allowed fields to update
-    const { name, description, welcome_message, ai_model } = body;
-    const updateData: { [key: string]: any } = {};
+    const {
+      name,
+      description,
+      welcome_message,
+      ai_model,
+      primary_color,
+      secondary_color,
+      border_radius,
+      show_branding,
+      custom_css,
+    } = body;
+    const updateData: Partial<Chatbot> = {};
 
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (welcome_message !== undefined) updateData.welcome_message = welcome_message;
     if (ai_model !== undefined) updateData.ai_model = ai_model;
+    if (primary_color !== undefined) updateData.primary_color = primary_color;
+    if (secondary_color !== undefined) updateData.secondary_color = secondary_color;
+    if (border_radius !== undefined) updateData.border_radius = border_radius;
+    if (show_branding !== undefined) updateData.show_branding = show_branding;
+    if (custom_css !== undefined) updateData.custom_css = custom_css;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No update data provided' }, { status: 400 });
@@ -86,9 +102,9 @@ export async function PATCH(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const chatbotId = params.id;
+  const chatbotId = context.params.id;
 
   try {
     const cookieStore = await cookies();
@@ -139,9 +155,9 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const chatbotId = params.id;
+  const chatbotId = context.params.id;
 
   try {
     const cookieStore = await cookies();

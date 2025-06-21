@@ -35,12 +35,12 @@ const server = setupServer(
   })
 );
 
-beforeAll(() => server.listen());
-afterEach(() => {
-  cleanup();
-  server.resetHandlers();
-});
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
+afterEach(() => {
+  server.resetHandlers();
+  cleanup();
+});
 
 // Mock environment variables
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';

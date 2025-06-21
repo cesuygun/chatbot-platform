@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 import PricingPlans from '@/components/pricing/PricingPlans';
-import { AuthProvider } from '@/contexts/auth/AuthContext';
+import { AuthProvider } from '@/contexts/auth/AuthProvider';
+import { useAuth } from '@/contexts/auth/AuthContext';
 
 // Mock next/navigation
 const pushMock = vi.fn();
@@ -13,28 +14,9 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock Supabase client
-vi.mock('@/lib/supabase/client', () => ({
-  getSupabase: () => ({
-    auth: {
-      getSession: () => Promise.resolve({ data: { session: null } }),
-      onAuthStateChange: () => ({
-        data: {
-          subscription: {
-            unsubscribe: vi.fn(),
-          },
-        },
-      }),
-    },
-  }),
-}));
-
 // Mock AuthContext
 vi.mock('@/contexts/auth/AuthContext', () => ({
-  useAuth: () => ({
-    user: null,
-    loading: false,
-  }),
+  useAuth: vi.fn(),
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
@@ -57,6 +39,14 @@ describe('PricingPlans', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      loading: false,
+      signIn: vi.fn(),
+      signUp: vi.fn(),
+      signOut: vi.fn(),
+      resetPassword: vi.fn(),
+    });
   });
 
   it('renders all pricing plans', () => {
@@ -66,21 +56,20 @@ describe('PricingPlans', () => {
     expect(screen.getByText('Enterprise')).toBeInTheDocument();
   });
 
-  it('shows monthly prices by default', () => {
+  it('shows monthly prices in Euros by default', () => {
     renderWithAuth(<PricingPlans />);
-    expect(screen.getByText('$0')).toBeInTheDocument();
-    expect(screen.getByText('$29')).toBeInTheDocument();
-    expect(screen.getByText('$99')).toBeInTheDocument();
+    expect(screen.getByText('€0')).toBeInTheDocument();
+    expect(screen.getByText('€29')).toBeInTheDocument();
+    expect(screen.getByText('€99')).toBeInTheDocument();
   });
 
-  it('shows yearly prices when yearly is selected', () => {
+  it('shows yearly prices in Euros when yearly is selected', () => {
     renderWithAuth(<PricingPlans />);
     const yearlyToggle = screen.getByRole('button', { name: /yearly/i });
     fireEvent.click(yearlyToggle);
-    expect(screen.getByText(content => content.includes('$0'))).toBeInTheDocument();
-    expect(screen.getByText('$0')).toBeInTheDocument();
-    expect(screen.getByText('$278')).toBeInTheDocument();
-    expect(screen.getByText('$950')).toBeInTheDocument();
+    expect(screen.getByText('€0')).toBeInTheDocument();
+    expect(screen.getByText('€278')).toBeInTheDocument(); // 29 * 12 * 0.8
+    expect(screen.getByText('€950')).toBeInTheDocument(); // 99 * 12 * 0.8 (rounded)
   });
 
   it('highlights the Pro plan', () => {
@@ -103,11 +92,11 @@ describe('PricingPlans', () => {
     expect(screen.getByText('Unlimited Chatbots')).toBeInTheDocument();
   });
 
-  it('redirects to login when clicking on a plan without being logged in', async () => {
+  it('redirects to dashboard when clicking "Get Started" on free plan', async () => {
     renderWithAuth(<PricingPlans />);
     const getStartedButton = screen.getByText('Get Started');
     fireEvent.click(getStartedButton);
-    expect(pushMock).toHaveBeenCalledWith('/login?redirectTo=/pricing');
+    expect(pushMock).toHaveBeenCalledWith('/dashboard');
   });
 
   it('opens email client for enterprise plan', () => {
@@ -115,5 +104,12 @@ describe('PricingPlans', () => {
     const contactSalesButton = screen.getByText('Contact Sales');
     fireEvent.click(contactSalesButton);
     expect(window.location.href).toBe('mailto:sales@example.com');
+  });
+
+  it('redirects to login when trying to subscribe to Pro plan while logged out', () => {
+    renderWithAuth(<PricingPlans />);
+    const startTrialButton = screen.getByText('Start Free Trial');
+    fireEvent.click(startTrialButton);
+    expect(pushMock).toHaveBeenCalledWith('/login?redirectTo=/pricing');
   });
 });

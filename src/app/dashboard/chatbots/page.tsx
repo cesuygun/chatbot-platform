@@ -1,38 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Plus,
-  Edit,
-  Trash2,
-  MessageSquare,
-  Eye,
-  MoreVertical,
-  Calendar,
-  Users,
-  Star,
-  Clock,
-  BarChart2,
-} from 'lucide-react';
+import { Plus, MessageSquare, Star, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { Chatbot } from '@/types/chatbot';
 
-interface Chatbot {
-  id: string;
-  name: string;
-  created_at: string;
-  // Mock data to match the new design
+interface ChatbotDisplay extends Chatbot {
   messages: number;
   avg_rating: number;
   last_updated: string;
 }
 
 export default function ChatbotsPage() {
-  const router = useRouter();
-  const [chatbots, setChatbots] = useState<Chatbot[]>([]);
+  const [chatbots, setChatbots] = useState<ChatbotDisplay[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,12 +25,11 @@ export default function ChatbotsPage() {
     try {
       const response = await fetch('/api/chatbots', { credentials: 'include' });
       if (response.ok) {
-        const data = await response.json();
-        // Add mock data to the response
-        const botsWithMockData = data.map((bot: any) => ({
+        const data: Chatbot[] = await response.json();
+        const botsWithMockData = data.map(bot => ({
           ...bot,
           messages: Math.floor(Math.random() * 2000) + 500,
-          avg_rating: (Math.random() * 1.5 + 3.5).toFixed(1),
+          avg_rating: parseFloat((Math.random() * 1.5 + 3.5).toFixed(1)),
           last_updated: `${Math.floor(Math.random() * 7) + 1} days ago`,
         }));
         setChatbots(botsWithMockData);
@@ -62,36 +43,6 @@ export default function ChatbotsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDelete = async (chatbotId: string) => {
-    if (!confirm('Are you sure you want to delete this chatbot? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/chatbots/${chatbotId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        setChatbots(prev => prev.filter(bot => bot.id !== chatbotId));
-      } else {
-        alert('Failed to delete chatbot');
-      }
-    } catch (error) {
-      console.error('Error deleting chatbot:', error);
-      alert('An error occurred while deleting the chatbot');
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   if (loading) {

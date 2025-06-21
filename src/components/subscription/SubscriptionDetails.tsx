@@ -35,7 +35,9 @@ export function SubscriptionDetails() {
       if (!user) return;
 
       try {
-        const response = await fetch('/api/stripe/subscription');
+        const response = await fetch('/api/stripe/subscription', {
+          credentials: 'include',
+        });
         const data = await response.json();
 
         if (data.error) {
@@ -62,6 +64,7 @@ export function SubscriptionDetails() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           subscriptionId: subscription.id,
         }),

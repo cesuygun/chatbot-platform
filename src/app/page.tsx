@@ -1,92 +1,100 @@
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Bot, Zap, BrainCircuit } from 'lucide-react';
 
-// Placeholder components for sections
-const HeroSection = () => (
-  <section className="text-center py-20 bg-gray-50">
-    <h1 className="text-5xl font-extrabold mb-4">Build AI Chatbots with Your Knowledge Base</h1>
-    <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-      Train your custom AI chatbot with your documents, website, or text - no coding required.
-    </p>
-    <Link href="/register">
-      <Button size="lg">Start for Free</Button>
-    </Link>
-  </section>
-);
-
-const FeatureShowcase = () => (
-  <section className="py-20">
-    <div className="container mx-auto text-center">
-      <h2 className="text-4xl font-bold mb-12">Why ChatPro?</h2>
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="p-6">
-          <h3 className="text-2xl font-semibold mb-4">Easy Knowledge Base Integration</h3>
-          <p>
-            Upload PDFs, scrape websites, or add custom text. Your chatbot learns your data
-            instantly.
-          </p>
-        </div>
-        <div className="p-6">
-          <h3 className="text-2xl font-semibold mb-4">Transparent & Simple Pricing</h3>
-          <p>
-            No hidden fees. Start for free and scale as you grow with clear, feature-rich plans.
-          </p>
-        </div>
-        <div className="p-6">
-          <h3 className="text-2xl font-semibold mb-4">Developer-Friendly</h3>
-          <p>Clean APIs and embeddable widgets make it easy to integrate your chatbot anywhere.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-);
-
-const Testimonials = () => (
-  <section className="py-20 bg-gray-50">
-    <div className="container mx-auto text-center">
-      <h2 className="text-4xl font-bold mb-12">Loved by Businesses Worldwide</h2>
-      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        <div className="p-6 bg-white rounded-lg shadow">
-          <p className="italic">
-            &ldquo;Setting up our support chatbot was incredibly fast. It&apos;s already saved us
-            hours of repetitive work.&rdquo;
-          </p>
-          <p className="mt-4 font-semibold">- Alex, CEO of TechCorp</p>
-        </div>
-        <div className="p-6 bg-white rounded-lg shadow">
-          <p className="italic">
-            &ldquo;The knowledge base feature is a game-changer. Our chatbot can now answer complex
-            product questions accurately.&rdquo;
-          </p>
-          <p className="mt-4 font-semibold">- Sarah, Head of Support at Innovate Ltd.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-);
-
-const FinalCTA = () => (
-  <section className="py-24">
-    <div className="container mx-auto text-center">
-      <h2 className="text-3xl font-bold mb-8">Ready to transform your customer support?</h2>
-      <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-        Join thousands of businesses using our platform to create intelligent, knowledge-based
-        chatbots.
-      </p>
-      <Link href="/register">
-        <Button size="lg">Start Building for Free</Button>
-      </Link>
-    </div>
-  </section>
-);
-
-export default function HomePage() {
+export default function LandingPage() {
   return (
-    <main>
-      <HeroSection />
-      <FeatureShowcase />
-      <Testimonials />
-      <FinalCTA />
-    </main>
+    <div className="flex flex-col min-h-screen">
+      <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <nav className="flex justify-between items-center">
+          <Link href="/" className="flex items-center space-x-2">
+            <Bot className="h-8 w-8 text-blue-600" />
+            <span className="text-2xl font-bold text-gray-800">ChatBot Platform</span>
+          </Link>
+          <div className="flex items-center space-x-4">
+            <Link href="/pricing">
+              <Button variant="ghost">Pricing</Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="outline">Login</Button>
+            </Link>
+            <Link href="/register">
+              <Button>Get Started</Button>
+            </Link>
+          </div>
+        </nav>
+      </header>
+
+      <main className="flex-1">
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight">
+            Build Custom AI Chatbots in Minutes
+          </h1>
+          <p className="mt-6 max-w-2xl mx-auto text-lg text-gray-600">
+            Train ChatGPT on your own data. Create an intelligent chatbot that answers questions,
+            automates support, and engages with your customers 24/7.
+          </p>
+          <div className="mt-8 flex justify-center space-x-4">
+            <Link href="/register">
+              <Button size="lg">Start Your Free Trial</Button>
+            </Link>
+            <Link href="#features">
+              <Button size="lg" variant="outline">
+                Explore Features
+              </Button>
+            </Link>
+          </div>
+        </section>
+
+        <section id="features" className="bg-gray-50 py-20">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-extrabold">Why Choose Our Platform?</h2>
+              <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">
+                Everything you need to build, train, and deploy powerful AI chatbots.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-12">
+              <div className="text-center">
+                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-600 mx-auto mb-4">
+                  <BrainCircuit className="h-8 w-8" />
+                </div>
+                <h3 className="text-2xl font-bold">Train on Your Data</h3>
+                <p className="mt-2 text-gray-600">
+                  Upload documents, add website links, or connect your knowledge base to create a
+                  chatbot with expert knowledge.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-600 mx-auto mb-4">
+                  <Zap className="h-8 w-8" />
+                </div>
+                <h3 className="text-2xl font-bold">Deploy in Seconds</h3>
+                <p className="mt-2 text-gray-600">
+                  Embed a beautiful chat widget on your website with a simple copy-paste, or
+                  integrate with our API.
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-600 mx-auto mb-4">
+                  <Bot className="h-8 w-8" />
+                </div>
+                <h3 className="text-2xl font-bold">Automate & Engage</h3>
+                <p className="mt-2 text-gray-600">
+                  Provide instant answers to customer questions, capture leads, and improve user
+                  engagement automatically.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="bg-gray-800 text-white py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p>&copy; 2024 ChatBot Platform. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
   );
 }

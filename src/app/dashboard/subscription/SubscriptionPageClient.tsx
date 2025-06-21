@@ -2,6 +2,7 @@
 import { Suspense } from 'react';
 import { SubscriptionDetails } from '@/components/subscription/SubscriptionDetails';
 import { SubscriptionHistory } from '@/components/subscription/SubscriptionHistory';
+import PricingPlans from '@/components/pricing/PricingPlans';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const SubscriptionPageClient = () => (
@@ -11,6 +12,12 @@ const SubscriptionPageClient = () => (
       <Suspense fallback={<div>Loading subscription details...</div>}>
         <SubscriptionDetails />
       </Suspense>
+
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Manage Your Plan</h2>
+        <PricingPlans />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Billing History</CardTitle>

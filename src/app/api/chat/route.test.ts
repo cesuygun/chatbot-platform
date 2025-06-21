@@ -104,7 +104,7 @@ describe('Chat API Route', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.answer).toBe('Mocked answer');
+    expect(data.response).toBe('Mocked answer');
   });
 
   it('handles missing fields', async () => {
@@ -122,7 +122,7 @@ describe('Chat API Route', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe('Question and chatbotId are required');
+    expect(data.error).toBe('Message and chatbotId are required');
   });
 
   it('handles bot not found', async () => {
@@ -144,7 +144,7 @@ describe('Chat API Route', () => {
 
     // Since the handler doesn't validate bot existence, it should succeed
     expect(response.status).toBe(200);
-    expect(data.answer).toBe('Mocked answer');
+    expect(data.response).toBe('Mocked answer');
   });
 
   it('handles server error', async () => {
@@ -167,6 +167,6 @@ describe('Chat API Route', () => {
 
     // The handler should succeed even with "error" conditions since it doesn't validate
     expect(response.status).toBe(200);
-    expect(data.answer).toBe('Mocked answer');
+    expect(data.response).toBe('Mocked answer');
   });
 });

@@ -41,16 +41,28 @@ const formatChatHistory = (chatHistory: [string, string][]) => {
 
 export async function POST(req: NextRequest) {
   try {
-    const { question, chatbotId, chat_history } = await req.json();
+    const body = await req.json();
+    const { message, chatbotId, conversationId, chat_history, question } = body;
 
-    if (!question || !chatbotId) {
-      return NextResponse.json({ error: 'Question and chatbotId are required' }, { status: 400 });
+    // Support both old and new message formats
+    const userQuestion = message || question;
+    
+    if (!userQuestion || !chatbotId) {
+      return NextResponse.json({ error: 'Message and chatbotId are required' }, { status: 400 });
     }
 
     const supabaseClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // For now, return a mock response if no OpenAI key is configured
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ 
+        response: "I'm a demo chatbot. In a real implementation, I would connect to your knowledge base and provide helpful answers based on your uploaded documents. Please configure your OpenAI API key to enable full functionality.",
+        conversationId: conversationId || 'demo-conversation'
+      });
+    }
 
     const embeddings = new OpenAIEmbeddings({
       openAIApiKey: process.env.OPENAI_API_KEY,
@@ -94,14 +106,21 @@ export async function POST(req: NextRequest) {
     const conversationalChain = standaloneQuestionChain.pipe(answerChain);
 
     const result = await conversationalChain.invoke({
-        question: question,
+        question: userQuestion,
         chat_history: chat_history || [],
     });
 
-    return NextResponse.json({ answer: result });
+    // Return in the new format expected by the frontend
+    return NextResponse.json({ 
+      response: result,
+      conversationId: conversationId || 'conversation-' + Date.now()
+    });
 
   } catch (error) {
     console.error('Chat API error:', error);
-    return NextResponse.json({ error: 'An internal error occurred' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'An internal error occurred',
+      response: "I'm sorry, I encountered an error while processing your request. Please try again."
+    }, { status: 500 });
   }
 }

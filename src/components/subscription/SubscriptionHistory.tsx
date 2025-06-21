@@ -30,7 +30,9 @@ export function SubscriptionHistory() {
       if (!user) return;
 
       try {
-        const response = await fetch('/api/stripe/invoices');
+        const response = await fetch('/api/stripe/invoices', {
+          credentials: 'include',
+        });
         const data = await response.json();
 
         if (data.error) {

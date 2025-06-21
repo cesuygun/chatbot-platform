@@ -1,14 +1,38 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-  const supabase = createClient(
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: '', ...options });
+        },
+      },
+    }
   );
+
   try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const PRICE_ID_MAP = {
       pro_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
       pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID,
@@ -18,14 +42,13 @@ export async function POST(request: NextRequest) {
 
     type Plan = keyof typeof PRICE_ID_MAP;
 
-    const { plan, userId } = await request.json();
+    const { plan } = await request.json();
+    const userId = user.id;
+    const userEmail = user.email;
 
-    // Validate plan and userId
+    // Validate plan
     if (!plan || !PRICE_ID_MAP[plan as Plan]) {
       return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
-    }
-    if (!userId) {
-      return NextResponse.json({ error: 'User not found' }, { status: 400 });
     }
 
     // Look up customer in Supabase, check for errors
@@ -41,29 +64,23 @@ export async function POST(request: NextRequest) {
 
     let stripeCustomerId = customer?.stripe_customer_id;
 
-    // If no Stripe customer, look up user and create one
+    // If no Stripe customer, create one
     if (!stripeCustomerId) {
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('email')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (userError || !user?.email) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      if (!userEmail) {
+        return NextResponse.json({ error: 'User email not found' }, { status: 404 });
       }
 
       const stripeCustomer = await stripe.customers.create({
-        email: user.email,
+        email: userEmail,
         metadata: { userId },
       });
       stripeCustomerId = stripeCustomer.id;
 
-      const { error: insertError } = await supabase
+      const { error: upsertError } = await supabase
         .from('customers')
-        .insert({ id: userId, stripe_customer_id: stripeCustomerId });
+        .upsert({ id: userId, stripe_customer_id: stripeCustomerId });
 
-      if (insertError) {
+      if (upsertError) {
         return NextResponse.json({ error: 'Failed to save customer' }, { status: 500 });
       }
     }

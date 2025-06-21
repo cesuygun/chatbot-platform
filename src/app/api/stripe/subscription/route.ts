@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe, subscriptionSchema, formatStripeDate } from '@/lib/stripe';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -16,10 +16,8 @@ export async function GET(request: NextRequest) {
     }
     const userId = user.id;
 
-    // Initialize Stripe client lazily
     const stripe = getStripe();
 
-    // Get user's Stripe customer ID from Supabase
     const { data: userData, error: userError } = await supabase
       .from('customers')
       .select('stripe_customer_id')
