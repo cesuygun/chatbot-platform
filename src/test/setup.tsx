@@ -90,7 +90,7 @@ class IntersectionObserverMock implements IntersectionObserver {
 global.IntersectionObserver = IntersectionObserverMock;
 
 // Mock window.scrollTo
-window.scrollTo = vi.fn();
+window.scrollTo = vi.fn() as () => void;
 
 // Mock window.HTMLElement.prototype.scrollIntoView
 window.HTMLElement.prototype.scrollIntoView = vi.fn();

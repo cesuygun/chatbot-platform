@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processPdfDocument } from '@/lib/knowledge-base';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 
 export async function POST(request: NextRequest) {
   const supabase = createServerClient(

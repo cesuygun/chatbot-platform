@@ -12,19 +12,6 @@ import { PromptTemplate } from '@langchain/core/prompts';
 
 export const dynamic = 'force-dynamic';
 
-const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const embeddings = new OpenAIEmbeddings({
-  openAIApiKey: process.env.OPEN_AI_KEY,
-});
-
-const llm = new OpenAI({
-    openAIApiKey: process.env.OPEN_AI_KEY,
-});
-
 const condenseQuestionTemplate = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
 
 Chat History:
@@ -59,6 +46,19 @@ export async function POST(req: NextRequest) {
     if (!question || !chatbotId) {
       return NextResponse.json({ error: 'Question and chatbotId are required' }, { status: 400 });
     }
+
+    const supabaseClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const embeddings = new OpenAIEmbeddings({
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const llm = new OpenAI({
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
 
     const vectorStore = new SupabaseVectorStore(embeddings, {
       client: supabaseClient,

@@ -5,13 +5,13 @@ import { NextRequest } from 'next/server';
 // Mock the getStripe function
 vi.mock('@/lib/stripe', () => ({
   getStripe: vi.fn().mockReturnValue({
-    checkout: {
-      sessions: {
-        create: vi.fn().mockResolvedValue({
-          url: 'https://checkout.stripe.com/test',
-        }),
-      },
+  checkout: {
+    sessions: {
+      create: vi.fn().mockResolvedValue({
+        url: 'https://checkout.stripe.com/test',
+      }),
     },
+  },
   }),
 }));
 

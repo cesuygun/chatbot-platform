@@ -48,15 +48,15 @@ const Testimonials = () => (
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         <div className="p-6 bg-white rounded-lg shadow">
           <p className="italic">
-            "Setting up our support chatbot was incredibly fast. It's already saved us hours of
-            repetitive work."
+            &ldquo;Setting up our support chatbot was incredibly fast. It&apos;s already saved us
+            hours of repetitive work.&rdquo;
           </p>
           <p className="mt-4 font-semibold">- Alex, CEO of TechCorp</p>
         </div>
         <div className="p-6 bg-white rounded-lg shadow">
           <p className="italic">
-            "The knowledge base feature is a game-changer. Our chatbot can now answer complex
-            product questions accurately."
+            &ldquo;The knowledge base feature is a game-changer. Our chatbot can now answer complex
+            product questions accurately.&rdquo;
           </p>
           <p className="mt-4 font-semibold">- Sarah, Head of Support at Innovate Ltd.</p>
         </div>

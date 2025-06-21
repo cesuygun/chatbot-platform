@@ -64,11 +64,11 @@ const runPipeline = () => {
     console.log('🌐 E2E tests skipped in CI - requires authentication and database setup');
     console.log('💡 E2E tests can be run locally with: pnpm test:e2e\n');
   } else {
-    console.log('🌐 Running E2E tests...');
+  console.log('🌐 Running E2E tests...');
     if (!runCommand('pnpm test:e2e', 'E2E tests failed')) {
       console.log('⚠️  E2E tests failed, but continuing with core pipeline...\n');
     } else {
-      console.log('✅ E2E tests passed\n');
+  console.log('✅ E2E tests passed\n');
     }
   }
 

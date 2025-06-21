@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { middleware } from './middleware';
 import { vi } from 'vitest';
 
@@ -42,15 +41,11 @@ describe('Rate Limiting Middleware', () => {
   });
 
   it('allows non-API routes to pass through', async () => {
-    const request = new NextRequest(new Request('http://localhost:3000/dashboard'));
-    const response = await middleware(request);
+    const response = await middleware();
     expect(response.status).toBe(200); // Dashboard is no longer protected by middleware
   });
 
   it.skip('applies rate limiting to API routes', async () => {
-    const request = new NextRequest(new Request('http://localhost:3000/api/test'));
-    request.headers.set('x-forwarded-for', '192.168.1.1');
-
     // Mock successful rate limit check
     const mockLimit = vi.fn().mockResolvedValue({
       success: true,
@@ -64,16 +59,13 @@ describe('Rate Limiting Middleware', () => {
     const Ratelimit = require('@upstash/ratelimit').Ratelimit;
     Ratelimit.prototype.limit = mockLimit;
 
-    const response = await middleware(request);
+    const response = await middleware();
     expect(response.status).toBe(200);
     expect(response.headers.get('X-RateLimit-Limit')).toBe('10');
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('9');
   });
 
   it.skip('blocks requests when rate limit is exceeded', async () => {
-    const request = new NextRequest(new Request('http://localhost:3000/api/test'));
-    request.headers.set('x-forwarded-for', '192.168.1.1');
-
     // Mock rate limit exceeded
     const mockLimit = vi.fn().mockResolvedValue({
       success: false,
@@ -87,14 +79,12 @@ describe('Rate Limiting Middleware', () => {
     const Ratelimit = require('@upstash/ratelimit').Ratelimit;
     Ratelimit.prototype.limit = mockLimit;
 
-    const response = await middleware(request);
+    const response = await middleware();
     expect(response.status).toBe(429);
     expect(await response.json()).toEqual({ error: 'Too many requests' });
   });
 
   it.skip('uses default IP when x-forwarded-for is not present', async () => {
-    const request = new NextRequest(new Request('http://localhost:3000/api/test'));
-
     // Mock successful rate limit check
     const mockLimit = vi.fn().mockResolvedValue({
       success: true,
@@ -108,7 +98,7 @@ describe('Rate Limiting Middleware', () => {
     const Ratelimit = require('@upstash/ratelimit').Ratelimit;
     Ratelimit.prototype.limit = mockLimit;
 
-    const response = await middleware(request);
+    const response = await middleware();
     expect(response.status).toBe(200);
     expect(mockLimit).toHaveBeenCalledWith('127.0.0.1');
   });
