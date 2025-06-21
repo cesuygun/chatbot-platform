@@ -11,7 +11,7 @@ vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test_service_role_key');
 vi.mock('stripe', () => ({
   default: vi.fn().mockImplementation(() => ({
     webhooks: {
-      constructEvent: vi.fn().mockImplementation((body, sig, secret) => {
+      constructEvent: vi.fn().mockImplementation((body, sig) => {
         if (!sig) {
           throw new Error('No signature provided');
         }

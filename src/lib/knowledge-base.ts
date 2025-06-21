@@ -5,17 +5,17 @@ import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import fs from 'fs/promises';
 
-const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const embeddings = new OpenAIEmbeddings({
-  openAIApiKey: process.env.OPEN_AI_KEY,
-});
-
 export async function processPdfDocument(file: File, chatbotId: string) {
   try {
+    const supabaseClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const embeddings = new OpenAIEmbeddings({
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const tempFilePath = `/tmp/${Date.now()}-${file.name}`;
     await fs.writeFile(tempFilePath, buffer);
