@@ -63,30 +63,13 @@ export default function PricingPlans() {
     }
   };
 
-  const handleButtonClick = (plan: PricingPlan) => {
-    // For logged-out users
-    if (!user) {
-      if (plan.id === 'free') {
-        router.push('/register');
-      } else {
-        router.push('/login?redirectTo=/pricing');
-      }
-      return;
-    }
-
-    // For Enterprise plan, redirect to contact
-    if (plan.id === 'enterprise') {
-      window.location.href = 'mailto:sales@example.com';
-      return;
-    }
-
-    // For logged-in users, this will only be called for paid plans.
-    handleSubscribe(plan.id);
-  };
-
   const isCurrentPlan = (plan: PricingPlan) => {
+    // A logged out user never has a "current" plan.
+    if (!user) {
+      return false;
+    }
     if (!subscription) {
-      // If no subscription, the user is on the free plan by default
+      // If logged in and no subscription, the user is on the free plan by default
       return plan.id === 'free';
     }
     return subscription.plan.id === plan.id;
@@ -95,6 +78,10 @@ export default function PricingPlans() {
   const getButtonLabel = (plan: PricingPlan): string => {
     if (subscriptionLoading) {
       return 'Loading...';
+    }
+
+    if (plan.id === 'enterprise') {
+      return 'Contact Us';
     }
 
     if (!user) {
@@ -107,19 +94,16 @@ export default function PricingPlans() {
     }
 
     if (plan.id === 'free') {
-      // Don't show a button for the free plan if the user is on a paid plan.
-      // Cancellation is handled on the subscription page.
+      // Cancellation should be handled in the subscription settings, not here.
       return '';
     }
 
     const currentPlan = PRICING_PLANS.find(p => p.id === subscription?.plan.id);
 
-    // If no current plan or current plan is free, it's an upgrade
     if (!currentPlan || currentPlan.id === 'free') {
       return 'Upgrade';
     }
 
-    // Compare prices for upgrade/downgrade
     if (plan.price > currentPlan.price) {
       return 'Upgrade';
     }
@@ -129,6 +113,25 @@ export default function PricingPlans() {
     }
 
     return 'Change Plan'; // Fallback
+  };
+
+  const handleButtonClick = (plan: PricingPlan) => {
+    if (plan.id === 'enterprise') {
+      window.location.href = 'mailto:sales@example.com';
+      return;
+    }
+    // For logged-out users
+    if (!user) {
+      if (plan.id === 'free') {
+        router.push('/register');
+      } else {
+        router.push('/login?redirectTo=/pricing');
+      }
+      return;
+    }
+
+    // For logged-in users, this will only be called for paid plans.
+    handleSubscribe(plan.id);
   };
 
   const isDisabled = (plan: PricingPlan) => {
