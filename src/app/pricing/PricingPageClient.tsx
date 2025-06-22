@@ -1,31 +1,32 @@
 'use client';
-import { Suspense } from 'react';
-import { PricingHeader } from '../../components/pricing/PricingHeader';
-import PricingPlans from '../../components/pricing/PricingPlans';
-import { PricingFAQ } from '../../components/pricing/PricingFAQ';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 
-const PricingPageClient = () => (
-  <>
-    <header className="p-4 flex justify-between items-center border-b bg-gray-50">
-      <Link href="/">
-        <span className="font-bold text-xl">Chatbot Platform</span>
-      </Link>
-      <nav>
-        <Link href="/login" passHref>
-          <Button variant="outline">Login</Button>
-        </Link>
-      </nav>
-    </header>
-    <div className="container mx-auto py-12">
-      <PricingHeader />
-      <Suspense fallback={<div>Loading plans...</div>}>
-        <PricingPlans />
-      </Suspense>
-      <PricingFAQ />
-    </div>
-  </>
-);
+import { PageHeader } from '@/components/layout/PageHeader';
+import PricingPlans from '@/components/pricing/PricingPlans';
+import { PricingHeader } from '@/components/pricing/PricingHeader';
+import { PricingFAQ } from '@/components/pricing/PricingFAQ';
 
-export default PricingPageClient;
+export default function PricingPageClient() {
+  return (
+    <>
+      <PageHeader />
+      <div className="min-h-screen bg-gradient-to-b from-background to-gray-50">
+        {/* Hero Section */}
+        <div className="py-20 bg-background">
+          <div className="container mx-auto px-4 text-center">
+            <PricingHeader />
+          </div>
+        </div>
+
+        {/* Pricing Plans Section */}
+        <div className="py-20 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <PricingPlans />
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <PricingFAQ />
+      </div>
+    </>
+  );
+}

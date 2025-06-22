@@ -100,9 +100,6 @@ export function SubscriptionDetails() {
           <CardTitle>No Active Subscription</CardTitle>
           <CardDescription>Subscribe to a plan to unlock all features</CardDescription>
         </CardHeader>
-        <CardFooter>
-          <Button onClick={() => (window.location.href = '/pricing')}>View Plans</Button>
-        </CardFooter>
       </Card>
     );
   }

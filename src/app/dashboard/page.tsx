@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,28 +14,55 @@ interface DashboardChatbot extends Chatbot {
 }
 
 export default function DashboardPage() {
-  const recentChatbots: DashboardChatbot[] = [
-    {
-      id: '1',
-      user_id: '1',
-      name: 'Support Bot',
-      created_at: new Date().toISOString(),
-      ai_model: 'gpt-4',
-      messages: 150,
-      avg_rating: 4.8,
-      last_updated: '5m ago',
-    },
-    {
-      id: '2',
-      user_id: '1',
-      name: 'Sales Assistant',
-      created_at: new Date().toISOString(),
-      ai_model: 'gpt-4',
-      messages: 88,
-      avg_rating: 4.9,
-      last_updated: '1h ago',
-    },
-  ];
+  const [recentChatbots, setRecentChatbots] = useState<DashboardChatbot[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchChatbots();
+  }, []);
+
+  const fetchChatbots = async () => {
+    try {
+      const response = await fetch('/api/chatbots', { credentials: 'include' });
+      if (response.ok) {
+        const data: Chatbot[] = await response.json();
+        // Limit to 2 most recent chatbots for the dashboard
+        const botsWithMockData = data
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 2)
+          .map(bot => ({
+            ...bot,
+            messages: Math.floor(Math.random() * 2000) + 500,
+            avg_rating: parseFloat((Math.random() * 1.5 + 3.5).toFixed(1)),
+            last_updated: `${Math.floor(Math.random() * 7) + 1} days ago`,
+          }));
+        setRecentChatbots(botsWithMockData);
+      } else {
+        console.error('Failed to fetch chatbots');
+        setRecentChatbots([]);
+      }
+    } catch (error) {
+      console.error('Error fetching chatbots:', error);
+      setRecentChatbots([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2].map(i => (
+              <div key={i} className="h-56 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 bg-gray-50 min-h-full">

@@ -109,24 +109,25 @@ export const ChatbotForm = ({ onSuccess, onError }: ChatbotFormProps) => {
         throw new Error('User not authenticated');
       }
 
-      // Create bot
-      const { data: bot, error: botError } = await supabase
-        .from('bots')
-        .insert([
-          {
-            name: formData.name,
-            description: formData.description,
-            model: formData.model,
-            user_id: user.id,
-          },
-        ])
-        .select()
-        .single();
+      // Create bot using API endpoint
+      const response = await fetch('/api/chatbots', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          welcomeMessage: `Hello! I'm ${formData.name}. How can I help you today?`,
+        }),
+      });
 
-      if (botError) {
-        throw botError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create chatbot');
       }
 
+      const bot = await response.json();
       onSuccess?.(bot.id);
       setFormData({ name: '', description: '', model: '' });
       setFormErrors({});

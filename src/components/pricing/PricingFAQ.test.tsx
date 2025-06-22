@@ -1,19 +1,31 @@
 import { describe, it, expect } from 'vitest';
 import { PricingFAQ } from './PricingFAQ';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 describe('PricingFAQ', () => {
-  it('renders FAQ questions and answers', () => {
+  it('renders FAQ questions and answers', async () => {
     render(<PricingFAQ />);
-    expect(screen.getByText(/what payment methods do you accept/i)).toBeInTheDocument();
-    expect(screen.getByText(/can i cancel my subscription/i)).toBeInTheDocument();
-    expect(screen.getByText(/do you offer refunds/i)).toBeInTheDocument();
-    expect(screen.getByText(/we accept all major credit cards and paypal/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/yes, you can cancel anytime from your dashboard/i)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/we offer a 14-day money-back guarantee on all plans/i)
-    ).toBeInTheDocument();
+    // For each question, click the trigger and await the answer
+    const faqs = [
+      {
+        question: /what payment methods do you accept/i,
+        answer: /we accept all major credit cards and paypal/i,
+      },
+      {
+        question: /can i cancel my subscription/i,
+        answer: /yes, you can cancel anytime from your dashboard/i,
+      },
+      {
+        question: /do you offer refunds/i,
+        answer: /we offer a 14-day money-back guarantee on all plans/i,
+      },
+    ];
+
+    for (const { question, answer } of faqs) {
+      const trigger = screen.getByRole('button', { name: question });
+      fireEvent.click(trigger);
+      // Wait for the answer to appear
+      expect(await screen.findByText(answer)).toBeInTheDocument();
+    }
   });
 });
