@@ -1,8 +1,15 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Bot, Zap, BrainCircuit } from 'lucide-react';
+import ComingSoon from '@/components/layout/ComingSoon';
 
 export default function LandingPage() {
+  const showComingSoon = process.env.NEXT_PUBLIC_SHOW_COMING_SOON === 'true';
+
+  if (showComingSoon) {
+    return <ComingSoon />;
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
