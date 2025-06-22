@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface Subscription {
   id: string;
@@ -86,7 +87,11 @@ export function SubscriptionDetails() {
   };
 
   if (loading) {
-    return <div>Loading subscription details...</div>;
+    return (
+      <div className="flex justify-center items-center p-8">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   if (error) {

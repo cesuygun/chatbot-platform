@@ -7,9 +7,10 @@ import { SubscriptionDetails } from '@/components/subscription/SubscriptionDetai
 import { SubscriptionHistory } from '@/components/subscription/SubscriptionHistory';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Check, ExternalLink } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const SubscriptionPageClient = () => {
-  const { subscription } = useSubscription();
+  const { subscription, subscriptionLoading } = useSubscription();
 
   const handleManageSubscription = () => {
     window.open('/pricing', '_blank');
@@ -62,9 +63,13 @@ const SubscriptionPageClient = () => {
             <CardDescription>Your current subscription details and usage</CardDescription>
           </CardHeader>
           <CardContent>
-            <Suspense fallback={<div>Loading subscription details...</div>}>
-              <SubscriptionDetails />
-            </Suspense>
+            {subscriptionLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <Suspense fallback={<LoadingSpinner />}>
+                <SubscriptionDetails />
+              </Suspense>
+            )}
           </CardContent>
         </Card>
 
@@ -108,7 +113,7 @@ const SubscriptionPageClient = () => {
             <CardDescription>View your past invoices and payment history</CardDescription>
           </CardHeader>
           <CardContent>
-            <Suspense fallback={<div>Loading billing history...</div>}>
+            <Suspense fallback={<LoadingSpinner />}>
               <SubscriptionHistory />
             </Suspense>
           </CardContent>

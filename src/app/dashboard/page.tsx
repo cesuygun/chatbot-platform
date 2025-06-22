@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, MessageSquare, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { PlanUsage } from '@/components/dashboard/PlanUsage';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function DashboardPage() {
   const { subscription, chatbots, subscriptionLoading } = useSubscription();
@@ -46,7 +47,7 @@ export default function DashboardPage() {
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Recent Chatbots</h2>
             {subscriptionLoading ? (
-              <p>Loading chatbots...</p>
+              <LoadingSpinner />
             ) : recentChatbots.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {recentChatbots.map(bot => (

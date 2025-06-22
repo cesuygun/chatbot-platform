@@ -9,11 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Check, X } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { PRICING_PLANS } from '@/config/pricing';
 import { PricingPlan } from '@/types/pricing';
 import { useSubscription } from '@/hooks/useSubscription';
+import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 const YEARLY_DISCOUNT = 0.2; // 20% off
 const MONTHS_IN_YEAR = 12;
@@ -31,6 +33,15 @@ export const PricingPlans = () => {
   const { subscription, subscriptionLoading } = useSubscription();
   const router = useRouter();
   const [interval, setInterval] = useState<'monthly' | 'yearly'>('monthly');
+  const [currency, setCurrency] = useState<'usd' | 'eur'>('eur');
+
+  if (subscriptionLoading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   const handleSubscribe = async (planId: string) => {
     if (!user) {

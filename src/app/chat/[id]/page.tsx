@@ -1,19 +1,22 @@
 'use client';
 
-import { ChatInterface } from '@/components/chatbot/ChatInterface';
 import { useParams } from 'next/navigation';
+import { ChatInterface } from '@/components/chatbot/ChatInterface';
+import { useAuth } from '@/contexts/auth/AuthContext';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function ChatPage() {
   const params = useParams();
-  const botId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const chatbotId = params.id as string;
+  const { user, loading: authLoading } = useAuth();
 
-  if (!botId) {
-    return <div>Loading...</div>;
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
-  return (
-    <div className="h-screen bg-gray-50">
-      <ChatInterface botId={botId as string} />
-    </div>
-  );
+  return <ChatInterface botId={chatbotId} />;
 }
