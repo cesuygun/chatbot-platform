@@ -5,9 +5,9 @@ import { Chatbot } from '@/types/chatbot';
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const chatbotId = context.params.id;
+  const { id: chatbotId } = await context.params;
   const body = await request.json();
 
   try {
@@ -102,9 +102,9 @@ export async function PATCH(
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const chatbotId = context.params.id;
+  const { id: chatbotId } = await context.params;
 
   try {
     const cookieStore = await cookies();
@@ -155,9 +155,9 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const chatbotId = context.params.id;
+  const { id: chatbotId } = await context.params;
 
   try {
     const cookieStore = await cookies();

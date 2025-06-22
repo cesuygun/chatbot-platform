@@ -2,6 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
 
+// Mock next/headers
+vi.mock('next/headers', () => ({
+  cookies: vi.fn().mockResolvedValue({
+    get: vi.fn(),
+    set: vi.fn(),
+    remove: vi.fn(),
+  }),
+}));
+
 // Mock Stripe
 const mockStripeCustomer = {
   id: 'cus_test123',
@@ -36,10 +45,17 @@ const mockSupabaseClient = {
   eq: vi.fn().mockReturnThis(),
   maybeSingle: vi.fn(),
   insert: vi.fn().mockResolvedValue({ error: null }),
+  upsert: vi.fn().mockResolvedValue({ error: null }),
+  auth: {
+    getUser: vi.fn().mockResolvedValue({
+      data: { user: { id: 'user-123', email: 'test@example.com' } },
+      error: null,
+    }),
+  },
 };
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn().mockImplementation(() => mockSupabaseClient),
+vi.mock('@supabase/ssr', () => ({
+  createServerClient: vi.fn().mockImplementation(() => mockSupabaseClient),
 }));
 
 describe('Stripe Checkout Session Handler', () => {
@@ -132,8 +148,9 @@ describe('Stripe Checkout Session Handler', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'http://localhost:54321');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service_role_key');
     
-    // Mock Supabase error
-    mockSupabaseClient.maybeSingle.mockResolvedValue({
+    // Reset and set the mock for this test only
+    mockSupabaseClient.maybeSingle.mockReset();
+    mockSupabaseClient.maybeSingle.mockResolvedValueOnce({
       data: null,
       error: { message: 'Database error' },
     });
