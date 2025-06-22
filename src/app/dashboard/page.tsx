@@ -71,12 +71,15 @@ export default function DashboardPage() {
                         <span>Created: {new Date(bot.created_at).toLocaleDateString()}</span>
                       </div>
                       <div className="flex space-x-2 mt-4">
-                        <Link href={`/dashboard/chatbots/${bot.id}`} className="w-full">
+                        <Link href={`/dashboard/chatbots/${bot.id}`} className="w-full" legacyBehavior>
                           <Button variant="outline" className="w-full">
                             Edit
                           </Button>
                         </Link>
-                        <Link href={`/dashboard/chatbots/${bot.id}/deploy`} className="w-full">
+                        <Link
+                          href={`/dashboard/chatbots/${bot.id}/deploy`}
+                          className="w-full"
+                          legacyBehavior>
                           <Button className="w-full">Deploy</Button>
                         </Link>
                       </div>

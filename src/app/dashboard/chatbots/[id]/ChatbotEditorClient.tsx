@@ -29,6 +29,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useRouter } from 'next/navigation';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface KnowledgeSource {
   id: string;
@@ -475,7 +476,11 @@ const ChatbotEditorClient = ({ chatbotId }: { chatbotId: string }) => {
   };
 
   if (loading) {
-    return <div>Loading editor...</div>;
+    return (
+      <div className="flex justify-center items-center h-full">
+        <LoadingSpinner size={48} />
+      </div>
+    );
   }
 
   if (!chatbot) {

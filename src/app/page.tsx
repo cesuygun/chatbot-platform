@@ -7,24 +7,26 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <nav className="flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2" legacyBehavior>
             <Bot className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold text-gray-800">ChatBot Platform</span>
           </Link>
           <div className="flex items-center space-x-4">
-            <Link href="/pricing">
+            <Link href="/features">
+              <Button variant="ghost">Features</Button>
+            </Link>
+            <Link href="/pricing" legacyBehavior>
               <Button variant="ghost">Pricing</Button>
             </Link>
-            <Link href="/login">
+            <Link href="/login" legacyBehavior>
               <Button variant="outline">Login</Button>
             </Link>
-            <Link href="/register">
+            <Link href="/register" legacyBehavior>
               <Button>Get Started</Button>
             </Link>
           </div>
         </nav>
       </header>
-
       <main className="flex-1">
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight">
@@ -35,10 +37,10 @@ export default function LandingPage() {
             automates support, and engages with your customers 24/7.
           </p>
           <div className="mt-8 flex justify-center space-x-4">
-            <Link href="/register">
+            <Link href="/register" legacyBehavior>
               <Button size="lg">Start Your Free Trial</Button>
             </Link>
-            <Link href="#features">
+            <Link href="/features">
               <Button size="lg" variant="outline">
                 Explore Features
               </Button>
@@ -89,7 +91,6 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-
       <footer className="bg-gray-800 text-white py-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p>&copy; 2024 ChatBot Platform. All rights reserved.</p>
