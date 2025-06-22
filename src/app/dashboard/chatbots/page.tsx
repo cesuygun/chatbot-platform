@@ -43,11 +43,7 @@ export default function ChatbotsPage() {
                   className={!canCreateChatbot ? 'cursor-not-allowed' : ''}
                   style={{ display: 'inline-block' }}
                 >
-                  <Link
-                    href={canCreateChatbot ? '/dashboard/chatbots/create' : '#'}
-                    passHref
-                    legacyBehavior
-                  >
+                  <Link href={canCreateChatbot ? '/dashboard/chatbots/create' : '#'} passHref>
                     <Button disabled={!canCreateChatbot}>
                       <Plus className="h-4 w-4 mr-2" />
                       Create New
@@ -71,7 +67,7 @@ export default function ChatbotsPage() {
                 <p className="text-gray-600 mb-6">
                   Create your first chatbot to get started with customer support automation.
                 </p>
-                <Link href="/dashboard/chatbots/create" legacyBehavior>
+                <Link href="/dashboard/chatbots/create">
                   <Button size="lg">
                     <Plus className="h-4 w-4 mr-2" />
                     Create Your First Chatbot
@@ -108,18 +104,12 @@ export default function ChatbotsPage() {
                     </div>
                   </CardContent>
                   <div className="p-6 pt-0 mt-auto flex space-x-2">
-                    <Link
-                      href={`/dashboard/chatbots/${chatbot.id}`}
-                      className="flex-1"
-                      legacyBehavior>
+                    <Link href={`/dashboard/chatbots/${chatbot.id}`} className="flex-1">
                       <Button variant="outline" className="w-full">
                         Edit
                       </Button>
                     </Link>
-                    <Link
-                      href={`/dashboard/chatbots/${chatbot.id}/deploy`}
-                      className="flex-1"
-                      legacyBehavior>
+                    <Link href={`/dashboard/chatbots/${chatbot.id}/deploy`} className="flex-1">
                       <Button className="w-full">Deploy</Button>
                     </Link>
                   </div>

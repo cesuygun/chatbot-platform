@@ -27,11 +27,7 @@ export default function DashboardPage() {
                   className={!canCreateChatbot ? 'cursor-not-allowed' : ''}
                   style={{ display: 'inline-block' }}
                 >
-                  <Link
-                    href={canCreateChatbot ? '/dashboard/chatbots/create' : '#'}
-                    passHref
-                    legacyBehavior
-                  >
+                  <Link href={canCreateChatbot ? '/dashboard/chatbots/create' : '#'} passHref>
                     <Button disabled={!canCreateChatbot}>
                       <Plus className="h-4 w-4 mr-2" />
                       Create New
@@ -54,32 +50,34 @@ export default function DashboardPage() {
             ) : recentChatbots.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {recentChatbots.map(bot => (
-                  <Card key={bot.id} className="bg-white hover:shadow-lg transition-shadow">
+                  <Card
+                    key={bot.id}
+                    className="bg-white hover:shadow-lg transition-shadow flex flex-col"
+                  >
                     <CardHeader>
                       <CardTitle className="text-xl">{bot.name}</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center text-sm text-gray-600 mb-2">
-                        <MessageSquare className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>
-                          {/* TODO: Replace with real message count */}
-                          {Math.floor(Math.random() * 2000) + 500} Messages
-                        </span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>Created: {new Date(bot.created_at).toLocaleDateString()}</span>
+                    <CardContent className="flex flex-col flex-grow">
+                      <div className="flex-grow">
+                        <div className="flex items-center text-sm text-gray-600 mb-2">
+                          <MessageSquare className="h-4 w-4 mr-2 text-gray-400" />
+                          <span>
+                            {/* TODO: Replace with real message count */}
+                            {Math.floor(Math.random() * 2000) + 500} Messages
+                          </span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                          <span>Created: {new Date(bot.created_at).toLocaleDateString()}</span>
+                        </div>
                       </div>
                       <div className="flex space-x-2 mt-4">
-                        <Link href={`/dashboard/chatbots/${bot.id}`} className="w-full" legacyBehavior>
+                        <Link href={`/dashboard/chatbots/${bot.id}`} className="w-full">
                           <Button variant="outline" className="w-full">
                             Edit
                           </Button>
                         </Link>
-                        <Link
-                          href={`/dashboard/chatbots/${bot.id}/deploy`}
-                          className="w-full"
-                          legacyBehavior>
+                        <Link href={`/dashboard/chatbots/${bot.id}/deploy`} className="w-full">
                           <Button className="w-full">Deploy</Button>
                         </Link>
                       </div>
