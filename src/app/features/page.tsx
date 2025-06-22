@@ -25,13 +25,13 @@ const features = [
     icon: BarChart,
     title: 'Analytics & Insights',
     description:
-      'Track conversation metrics, understand user queries, and get insights to improve your chatbot’s performance.',
+      "Track conversation metrics, understand user queries, and get insights to improve your chatbot's performance.",
   },
   {
     icon: Settings,
     title: 'Highly Customizable',
     description:
-      'Customize the look and feel of your chat widget, and tailor the AI’s personality to match your brand.',
+      "Customize the look and feel of your chat widget, and tailor the AI's personality to match your brand.",
   },
   {
     icon: ShieldCheck,
@@ -46,9 +46,11 @@ export default function FeaturesPage() {
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <nav className="flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2">
-            <Bot className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-800">ChatBot Platform</span>
+          <Link href="/">
+            <span className="flex items-center space-x-2">
+              <Bot className="h-8 w-8 text-blue-600" />
+              <span className="text-2xl font-bold text-gray-800">ChatBot Platform</span>
+            </span>
           </Link>
           <div className="flex items-center space-x-4">
             <Link href="/features">

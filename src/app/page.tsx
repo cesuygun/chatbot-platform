@@ -7,21 +7,23 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <nav className="flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2" legacyBehavior>
-            <Bot className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-800">ChatBot Platform</span>
+          <Link href="/">
+            <span className="flex items-center space-x-2">
+              <Bot className="h-8 w-8 text-blue-600" />
+              <span className="text-2xl font-bold text-gray-800">ChatBot Platform</span>
+            </span>
           </Link>
           <div className="flex items-center space-x-4">
             <Link href="/features">
               <Button variant="ghost">Features</Button>
             </Link>
-            <Link href="/pricing" legacyBehavior>
+            <Link href="/pricing">
               <Button variant="ghost">Pricing</Button>
             </Link>
-            <Link href="/login" legacyBehavior>
+            <Link href="/login">
               <Button variant="outline">Login</Button>
             </Link>
-            <Link href="/register" legacyBehavior>
+            <Link href="/register">
               <Button>Get Started</Button>
             </Link>
           </div>
@@ -37,7 +39,7 @@ export default function LandingPage() {
             automates support, and engages with your customers 24/7.
           </p>
           <div className="mt-8 flex justify-center space-x-4">
-            <Link href="/register" legacyBehavior>
+            <Link href="/register">
               <Button size="lg">Start Your Free Trial</Button>
             </Link>
             <Link href="/features">
