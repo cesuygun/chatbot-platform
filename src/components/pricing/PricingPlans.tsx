@@ -63,34 +63,63 @@ export default function PricingPlans() {
     }
   };
 
-  const getButtonLabel = (plan: PricingPlan) => {
+  const handleButtonClick = (plan: PricingPlan) => {
+    // For logged-out users
+    if (!user) {
+      if (plan.id === 'free') {
+        router.push('/register');
+      } else {
+        router.push('/login?redirectTo=/pricing');
+      }
+      return;
+    }
+
+    // For Enterprise plan, redirect to contact
+    if (plan.id === 'enterprise') {
+      window.location.href = 'mailto:sales@example.com';
+      return;
+    }
+
+    // For logged-in users, this will only be called for paid plans.
+    handleSubscribe(plan.id);
+  };
+
+  const isCurrentPlan = (plan: PricingPlan) => {
+    if (!subscription) {
+      // If no subscription, the user is on the free plan by default
+      return plan.id === 'free';
+    }
+    return subscription.plan.id === plan.id;
+  };
+
+  const getButtonLabel = (plan: PricingPlan): string => {
     if (subscriptionLoading) {
       return 'Loading...';
     }
 
-    // For logged-out users
     if (!user) {
       return plan.id === 'free' ? 'Get Started' : 'Sign up';
     }
 
-    // For logged-in users without subscription
-    if (!subscription) {
-      if (plan.id === 'free') {
-        return 'Current Plan';
-      }
-      return 'Upgrade';
-    }
-
-    // For logged-in users with subscription
-    if (subscription.plan.id === plan.id) {
+    // User is logged in
+    if (isCurrentPlan(plan)) {
       return 'Current Plan';
     }
 
-    const currentPlan = PRICING_PLANS.find(p => p.id === subscription.plan.id);
-    if (!currentPlan) {
-      return 'Change Plan';
+    if (plan.id === 'free') {
+      // Don't show a button for the free plan if the user is on a paid plan.
+      // Cancellation is handled on the subscription page.
+      return '';
     }
 
+    const currentPlan = PRICING_PLANS.find(p => p.id === subscription?.plan.id);
+
+    // If no current plan or current plan is free, it's an upgrade
+    if (!currentPlan || currentPlan.id === 'free') {
+      return 'Upgrade';
+    }
+
+    // Compare prices for upgrade/downgrade
     if (plan.price > currentPlan.price) {
       return 'Upgrade';
     }
@@ -99,36 +128,18 @@ export default function PricingPlans() {
       return 'Downgrade';
     }
 
-    return 'Change Plan';
-  };
-
-  const handleButtonClick = (plan: PricingPlan) => {
-    if (plan.id === 'enterprise') {
-      window.location.href = 'mailto:sales@example.com';
-      return;
-    }
-
-    if (!user) {
-      router.push('/login?redirectTo=/pricing');
-      return;
-    }
-
-    if (plan.id === 'free' && subscription) {
-      // Handle Downgrade to Free. For now, redirect to dashboard.
-      // In a real app, this would trigger a cancellation flow.
-      router.push('/dashboard');
-      return;
-    }
-
-    handleSubscribe(plan.id);
-  };
-
-  const isCurrentPlan = (plan: PricingPlan) => {
-    return subscription?.plan.id === plan.id;
+    return 'Change Plan'; // Fallback
   };
 
   const isDisabled = (plan: PricingPlan) => {
-    return subscriptionLoading || isCurrentPlan(plan);
+    if (subscriptionLoading) {
+      return true;
+    }
+    // A logged out user should always be able to click the buttons
+    if (!user) {
+      return false;
+    }
+    return isCurrentPlan(plan);
   };
 
   return (
@@ -197,14 +208,16 @@ export default function PricingPlans() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button
-                className="w-full"
-                variant={plan.id === 'pro' ? 'default' : 'outline'}
-                onClick={() => handleButtonClick(plan)}
-                disabled={isDisabled(plan)}
-              >
-                {getButtonLabel(plan)}
-              </Button>
+              {getButtonLabel(plan) && (
+                <Button
+                  className="w-full"
+                  onClick={() => handleButtonClick(plan)}
+                  disabled={isDisabled(plan)}
+                  variant={plan.id === 'pro' ? 'default' : 'outline'}
+                >
+                  {getButtonLabel(plan)}
+                </Button>
+              )}
             </CardFooter>
           </Card>
         ))}

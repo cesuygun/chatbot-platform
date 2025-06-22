@@ -81,10 +81,12 @@ describe('PricingPlans', () => {
     expect(buttons.some(b => b.textContent === 'Sign up')).toBe(true);
   });
 
-  it('redirects to login when a logged-out user clicks "Get Started"', () => {
+  it('redirects to register when a logged-out user clicks "Get Started"', async () => {
     renderWithProviders(<PricingPlans />);
     fireEvent.click(screen.getByText('Get Started'));
-    expect(pushMock).toHaveBeenCalledWith('/login?redirectTo=/pricing');
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith('/register');
+    });
   });
 
   it('shows correct button text for a logged-in user with no subscription', async () => {

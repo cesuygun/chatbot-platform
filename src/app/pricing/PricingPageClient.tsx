@@ -10,16 +10,12 @@ export default function PricingPageClient() {
     <>
       <PageHeader />
       <div className="min-h-screen bg-gradient-to-b from-background to-gray-50">
-        {/* Hero Section */}
-        <div className="py-20 bg-background">
-          <div className="container mx-auto px-4 text-center">
-            <PricingHeader />
-          </div>
-        </div>
-
-        {/* Pricing Plans Section */}
-        <div className="py-20 bg-gray-50">
+        {/* Unified Pricing Section */}
+        <div className="py-20">
           <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <PricingHeader />
+            </div>
             <PricingPlans />
           </div>
         </div>
