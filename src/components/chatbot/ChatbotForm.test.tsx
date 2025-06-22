@@ -3,6 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChatbotForm } from './ChatbotForm';
+import { AppRouterContextProviderMock } from '@/test/setup';
+
+// Mock the useRouter hook
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}));
 
 // Mock the environment variables
 vi.mock('process', () => ({
@@ -135,7 +143,11 @@ describe('ChatbotForm', () => {
   });
 
   it('renders form fields correctly', () => {
-    render(<ChatbotForm onSuccess={mockOnSuccess} onError={mockOnError} />);
+    render(
+      <AppRouterContextProviderMock router={{ push: () => {} }}>
+        <ChatbotForm />
+      </AppRouterContextProviderMock>
+    );
     expect(screen.getByLabelText(/bot name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/model/i)).toBeInTheDocument();

@@ -6,15 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { SubscriptionDetails } from '@/components/subscription/SubscriptionDetails';
 import { SubscriptionHistory } from '@/components/subscription/SubscriptionHistory';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useRouter } from 'next/navigation';
 import { Check, ExternalLink } from 'lucide-react';
 
 const SubscriptionPageClient = () => {
   const { subscription } = useSubscription();
-  const router = useRouter();
 
   const handleManageSubscription = () => {
-    router.push('/pricing');
+    window.open('/pricing', '_blank');
   };
 
   const handleCancelSubscription = async () => {

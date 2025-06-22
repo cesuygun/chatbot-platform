@@ -26,11 +26,11 @@ const getPrice = (plan: PricingPlan, interval: 'monthly' | 'yearly'): number => 
   return plan.price;
 };
 
-export default function PricingPlans() {
-  const [interval, setInterval] = useState<'monthly' | 'yearly'>('monthly');
-  const router = useRouter();
+export const PricingPlans = () => {
   const { user } = useAuth();
-  const { subscription, loading: subscriptionLoading } = useSubscription();
+  const { subscription, subscriptionLoading } = useSubscription();
+  const router = useRouter();
+  const [interval, setInterval] = useState<'monthly' | 'yearly'>('monthly');
 
   const handleSubscribe = async (planId: string) => {
     if (!user) {
@@ -227,4 +227,4 @@ export default function PricingPlans() {
       </div>
     </div>
   );
-}
+};

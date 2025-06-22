@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 
 interface ChatbotFormProps {
   onSuccess?: (botId: string) => void;
@@ -37,6 +38,7 @@ const MODELS = [
 ] as const;
 
 export const ChatbotForm = ({ onSuccess, onError }: ChatbotFormProps) => {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -128,7 +130,14 @@ export const ChatbotForm = ({ onSuccess, onError }: ChatbotFormProps) => {
       }
 
       const bot = await response.json();
-      onSuccess?.(bot.id);
+
+      // If onSuccess is provided, call it. Otherwise, redirect.
+      if (onSuccess) {
+        onSuccess(bot.id);
+      } else {
+        router.push(`/dashboard/chatbots/${bot.id}`);
+      }
+
       setFormData({ name: '', description: '', model: '' });
       setFormErrors({});
     } catch (err) {

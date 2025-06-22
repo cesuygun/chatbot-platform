@@ -33,6 +33,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // --- Subscription Limit Check ---
+    // 1. Get the user's current subscription
+    const { data: subscriptionData, error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .select('*, plan:plans(*)')
+      .eq('user_id', user.id)
+      .in('status', ['trialing', 'active'])
+      .single();
+
+    if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+      console.error('Error fetching subscription:', subscriptionError);
+      return NextResponse.json({ error: 'Failed to retrieve subscription details.' }, { status: 500 });
+    }
+
+    // 2. Get the number of existing chatbots
+    const { count: chatbotCount, error: countError } = await supabase
+      .from('chatbots')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    if (countError) {
+      console.error('Error counting chatbots:', countError);
+      return NextResponse.json({ error: 'Failed to count existing chatbots.' }, { status: 500 });
+    }
+
+    // 3. Enforce the limit
+    const chatbotLimit = subscriptionData?.plan?.chatbot_limit || 0;
+    if (chatbotCount !== null && chatbotCount >= chatbotLimit) {
+      return NextResponse.json(
+        {
+          error: `You have reached your limit of ${chatbotLimit} chatbots. Please upgrade your plan.`,
+        },
+        { status: 403 }
+      );
+    }
+    // --- End Subscription Limit Check ---
+
     const { name, description, welcomeMessage } = await request.json();
 
     if (!name) {

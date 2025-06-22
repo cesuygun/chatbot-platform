@@ -17,6 +17,18 @@ import { Switch } from '@/components/ui/switch';
 import { Upload, File, Trash2, Copy, ExternalLink } from 'lucide-react';
 import { ChatbotPreview } from '@/components/chatbot/ChatbotPreview';
 import { Chatbot } from '@/types/chatbot';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useRouter } from 'next/navigation';
 
 interface KnowledgeSource {
   id: string;
@@ -119,6 +131,7 @@ const SettingsTab = ({
   chatbot: Chatbot;
   onSettingsSave: (newSettings: Chatbot) => void;
 }) => {
+  const router = useRouter();
   const [settings, setSettings] = useState({
     name: chatbot.name || '',
     description: chatbot.description || '',
@@ -126,6 +139,28 @@ const SettingsTab = ({
   });
   const [aiModel, setAiModel] = useState(chatbot.ai_model || 'gpt-4');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/chatbots/${chatbot.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete chatbot');
+      }
+
+      alert('Chatbot deleted successfully!');
+      router.push('/dashboard/chatbots');
+    } catch (error) {
+      console.error('Error deleting chatbot:', error);
+      alert('An error occurred while deleting.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -206,6 +241,34 @@ const SettingsTab = ({
           {isSaving ? 'Saving...' : 'Save Settings'}
         </Button>
       </CardContent>
+      <CardFooter className="border-t pt-6 mt-6">
+        <div className="w-full">
+          <h3 className="text-lg font-semibold text-destructive">Danger Zone</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            These actions are permanent and cannot be undone.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">Delete Chatbot</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete your chatbot and all of
+                  its associated data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                  {isDeleting ? 'Deleting...' : 'Continue'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </CardFooter>
     </Card>
   );
 };

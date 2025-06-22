@@ -4,17 +4,21 @@ import { cleanup } from '@testing-library/react';
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 import React from 'react';
+import { render } from '@testing-library/react';
+import { AuthProvider } from '@/contexts/auth/AuthContext';
+import {
+  AppRouterContext,
+  AppRouterInstance,
+} from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 // Mock Supabase client
 vi.mock('@/lib/supabase/client', () => ({
-  getSupabase: () => ({
+  createClient: () => ({
     auth: {
-      getSession: () => Promise.resolve({ data: { session: null } }),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      signInWithPassword: () => Promise.resolve({ error: null }),
-      signUp: () => Promise.resolve({ error: null }),
-      signOut: () => Promise.resolve({ error: null }),
-      resetPasswordForEmail: () => Promise.resolve({ error: null }),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
     },
   }),
 }));
@@ -162,3 +166,26 @@ vi.mock('@radix-ui/react-select', () => ({
   Item: (props: { children?: React.ReactNode }) => <div>{props.children}</div>,
   // Add other exports as needed
 }));
+
+export const renderWithProviders = (ui: React.ReactElement) => {
+  return render(<AuthProvider>{ui}</AuthProvider>);
+};
+
+export const AppRouterContextProviderMock = ({
+  router,
+  children,
+}: {
+  router: Partial<AppRouterInstance>;
+  children: React.ReactNode;
+}) => {
+  const mockedRouter: AppRouterInstance = {
+    back: vi.fn(),
+    forward: vi.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+    ...router,
+  };
+  return <AppRouterContext.Provider value={mockedRouter}>{children}</AppRouterContext.Provider>;
+};

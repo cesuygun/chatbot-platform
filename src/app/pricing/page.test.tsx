@@ -1,7 +1,7 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
-import PricingPlans from '@/components/pricing/PricingPlans';
-import { AuthProvider } from '@/contexts/auth/AuthProvider';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { PricingPlans } from '@/components/pricing/PricingPlans';
+import { renderWithProviders } from '@/test/setup';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 
@@ -13,51 +13,23 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock AuthContext
-vi.mock('@/contexts/auth/AuthContext', async importOriginal => {
-  const actual = await importOriginal();
-  return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ...(actual as any),
-    useAuth: vi.fn(),
-  };
-});
-
-// Mock Supabase client
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: vi.fn().mockReturnValue({
-    auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      onAuthStateChange: vi.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      }),
-    },
-  }),
-}));
-
-// Mock useSubscription hook
+// Mock custom hooks
+vi.mock('@/contexts/auth/AuthContext');
 vi.mock('@/hooks/useSubscription');
 
-// Mock window.location
-Object.defineProperty(window, 'location', {
-  value: { href: '', assign: vi.fn(), replace: vi.fn() },
-  writable: true,
-});
+const mockUseAuth = useAuth as jest.Mock;
+const mockUseSubscription = useSubscription as jest.Mock;
 
 describe('PricingPlans', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mockUseAuth = useAuth as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mockUseSubscription = useSubscription as any;
-
-  const renderWithProviders = (component: React.ReactNode) => {
-    return render(<AuthProvider>{component}</AuthProvider>);
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mock for a logged-out user
     mockUseAuth.mockReturnValue({ user: null, loading: false });
-    mockUseSubscription.mockReturnValue({ subscription: null, loading: false });
+    mockUseSubscription.mockReturnValue({
+      subscription: null,
+      chatbots: [],
+      subscriptionLoading: false,
+    });
   });
 
   it('renders all pricing plans', () => {
@@ -76,9 +48,10 @@ describe('PricingPlans', () => {
 
   it('shows correct button text for logged-out users', () => {
     renderWithProviders(<PricingPlans />);
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.some(b => b.textContent === 'Get Started')).toBe(true);
-    expect(buttons.some(b => b.textContent === 'Sign up')).toBe(true);
+    expect(screen.getByText('Get Started')).toBeInTheDocument();
+    const signUpButtons = screen.getAllByText('Sign up');
+    expect(signUpButtons.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Contact Us')).toBeInTheDocument();
   });
 
   it('redirects to register when a logged-out user clicks "Get Started"', async () => {
@@ -96,7 +69,7 @@ describe('PricingPlans', () => {
       // Free plan should show 'Current Plan'
       const currentPlanButtons = screen.getAllByText('Current Plan');
       expect(currentPlanButtons.length).toBeGreaterThanOrEqual(1);
-      // Pro and Enterprise should show 'Upgrade'
+      // Pro should show 'Upgrade'
       const upgradeButtons = screen.getAllByText('Upgrade');
       expect(upgradeButtons.length).toBeGreaterThanOrEqual(1);
     });
@@ -105,17 +78,17 @@ describe('PricingPlans', () => {
   it('shows "Current Plan" for the subscribed plan', async () => {
     mockUseAuth.mockReturnValue({ user: { id: 'test-user' }, loading: false });
     mockUseSubscription.mockReturnValue({
-      subscription: { plan: { id: 'pro' } },
-      loading: false,
+      subscription: { plan: { id: 'pro', name: 'Pro' } },
+      chatbots: [],
+      subscriptionLoading: false,
     });
+
     renderWithProviders(<PricingPlans />);
+
     await waitFor(() => {
-      // There will be a badge and a button with 'Current Plan', so get all and find the button
-      const currentPlanButtons = screen.getAllByText('Current Plan');
-      // Find the button element
-      const button = currentPlanButtons.find(el => el.tagName === 'BUTTON');
-      expect(button).toBeDefined();
-      expect(button).toBeDisabled();
+      const currentPlanButton = screen.getByRole('button', { name: /current plan/i });
+      expect(currentPlanButton).toBeInTheDocument();
+      expect(currentPlanButton).toBeDisabled();
     });
   });
 });

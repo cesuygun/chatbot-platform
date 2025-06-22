@@ -48,7 +48,7 @@ export default function LandingPage() {
 
         <section id="features" className="bg-gray-50 py-20">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8">
               <h2 className="text-4xl font-extrabold">Why Choose Our Platform?</h2>
               <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-600">
                 Everything you need to build, train, and deploy powerful AI chatbots.
