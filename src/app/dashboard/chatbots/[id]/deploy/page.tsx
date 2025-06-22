@@ -22,22 +22,24 @@ export default function DeployChatbotPage() {
 ></script>`;
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Deploy Your Chatbot</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Embed on Your Website</CardTitle>
-          <CardDescription>
-            Copy and paste this snippet into your website's HTML just before the closing
-            `&lt;/body&gt;` tag.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <pre className="bg-gray-900 text-white p-4 rounded-md overflow-x-auto">
-            <code>{embedScript}</code>
-          </pre>
-        </CardContent>
-      </Card>
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8">Deploy Your Chatbot</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>Embed on Your Website</CardTitle>
+            <CardDescription>
+              Copy and paste this snippet into your website&apos;s HTML just before the closing
+              `&lt;/body&gt;` tag.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <pre className="bg-gray-900 text-white p-4 rounded-md overflow-x-auto">
+              <code>{embedScript}</code>
+            </pre>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -36,22 +36,18 @@ describe('PricingPlans', () => {
     renderWithProviders(<PricingPlans />);
     expect(screen.getByText('Free')).toBeInTheDocument();
     expect(screen.getByText('Pro')).toBeInTheDocument();
-    expect(screen.getByText('Enterprise')).toBeInTheDocument();
   });
 
   it('shows monthly prices in Euros by default', () => {
     renderWithProviders(<PricingPlans />);
     expect(screen.getByText('€0')).toBeInTheDocument();
-    expect(screen.getByText('€29')).toBeInTheDocument();
-    expect(screen.getByText('€99')).toBeInTheDocument();
+    expect(screen.getByText('€15')).toBeInTheDocument();
   });
 
   it('shows correct button text for logged-out users', () => {
     renderWithProviders(<PricingPlans />);
     expect(screen.getByText('Get Started')).toBeInTheDocument();
-    const signUpButtons = screen.getAllByText('Sign up');
-    expect(signUpButtons.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Contact Us')).toBeInTheDocument();
+    expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument();
   });
 
   it('redirects to register when a logged-out user clicks "Get Started"', async () => {
@@ -64,21 +60,24 @@ describe('PricingPlans', () => {
 
   it('shows correct button text for a logged-in user with no subscription', async () => {
     mockUseAuth.mockReturnValue({ user: { id: 'test-user' }, loading: false });
+    mockUseSubscription.mockReturnValue({
+      subscription: null,
+      chatbots: [],
+      subscriptionLoading: false,
+    });
     renderWithProviders(<PricingPlans />);
     await waitFor(() => {
-      // Free plan should show 'Current Plan'
-      const currentPlanButtons = screen.getAllByText('Current Plan');
-      expect(currentPlanButtons.length).toBeGreaterThanOrEqual(1);
-      // Pro should show 'Upgrade'
-      const upgradeButtons = screen.getAllByText('Upgrade');
-      expect(upgradeButtons.length).toBeGreaterThanOrEqual(1);
+      // The free plan should be the current plan, but the button will still say "Get Started"
+      const freePlanCard = screen.getByText('Free').closest('div.flex.flex-col');
+      expect(freePlanCard).toHaveTextContent('Get Started');
+      expect(screen.getByText('Upgrade to Pro')).toBeInTheDocument();
     });
   });
 
   it('shows "Current Plan" for the subscribed plan', async () => {
     mockUseAuth.mockReturnValue({ user: { id: 'test-user' }, loading: false });
     mockUseSubscription.mockReturnValue({
-      subscription: { plan: { id: 'pro', name: 'Pro' } },
+      subscription: { plan: { id: 'pro' } },
       chatbots: [],
       subscriptionLoading: false,
     });

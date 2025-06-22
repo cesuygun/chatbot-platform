@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 export default function ChatPage() {
   const params = useParams();
   const chatbotId = params.id as string;
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
 
   if (authLoading) {
     return (

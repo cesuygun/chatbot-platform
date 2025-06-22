@@ -1,10 +1,14 @@
 (function () {
-  // Get the bot ID from the script tag
-  const widgetScript = document.getElementById('chatbot-widget');
-  const botId = widgetScript.dataset.botId;
+  // Find the script tag and get the bot ID from its data attribute
+  const scriptTag = document.querySelector('script[src$="/embed.js"]');
+  if (!scriptTag) {
+    console.error('Chatbot Widget: Could not find the embed script tag.');
+    return;
+  }
+  const chatbotId = scriptTag.dataset.chatbotId;
 
-  if (!botId) {
-    console.error('Chatbot Widget: Bot ID is required');
+  if (!chatbotId) {
+    console.error('Chatbot Widget: data-chatbot-id attribute is required');
     return;
   }
 
@@ -13,22 +17,28 @@
   container.id = 'chatbot-container';
   document.body.appendChild(container);
 
+  // Get the base URL from the script's src
+  const scriptSrc = scriptTag.src;
+  const baseUrl = new URL(scriptSrc).origin;
+
   // Load the widget styles
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = `${window.location.origin}/embed.css`;
+  link.href = `${baseUrl}/embed.css`;
   document.head.appendChild(link);
 
   // Load the widget component
   const componentScript = document.createElement('script');
-  componentScript.src = `${window.location.origin}/embed-component.js`;
+  componentScript.src = `${baseUrl}/embed-component.js`;
   componentScript.async = true;
   componentScript.onload = () => {
-    // Initialize the widget
-    window.ChatbotWidget.init({
-      botId,
-      container: '#chatbot-container',
-    });
+    // Initialize the widget by passing the chatbotId and container selector
+    if (window.ChatbotWidget && typeof window.ChatbotWidget.init === 'function') {
+      window.ChatbotWidget.init({
+        chatbotId: chatbotId,
+        container: '#chatbot-container',
+      });
+    }
   };
   document.body.appendChild(componentScript);
 })();

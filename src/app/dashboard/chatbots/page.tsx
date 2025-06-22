@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, MessageSquare, Star, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { PlanUsage } from '@/components/dashboard/PlanUsage';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function ChatbotsPage() {
   const { subscription, chatbots, subscriptionLoading } = useSubscription();
@@ -16,17 +17,8 @@ export default function ChatbotsPage() {
 
   if (subscriptionLoading) {
     return (
-      <div className="p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-56 bg-gray-200 rounded-lg"></div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="flex justify-center items-center h-full p-8">
+        <LoadingSpinner size={48} />
       </div>
     );
   }
