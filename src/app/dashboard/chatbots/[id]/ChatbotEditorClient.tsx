@@ -380,11 +380,30 @@ const AppearanceTab = ({
 };
 
 const DeployTab = ({ chatbotId }: { chatbotId: string }) => {
-  const embedCode = `<script src="https://your-domain.com/embed.js" data-chatbot-id="${chatbotId}"></script>`;
+  const [origin, setOrigin] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(embedCode);
-    alert('Embed code copied to clipboard!');
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+
+  const embedCode = `<script src="${origin}/embed.js" data-chatbot-id="${chatbotId}" defer></script>`;
+  const apiEndpoint = `${origin}/api/chat`;
+  const directLink = `${origin}/chat/${chatbotId}`;
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const handleTestApi = () => {
+    // You can implement a more sophisticated test, like opening a pre-filled API client (e.g., Postman)
+    // For now, we'll just open the endpoint in a new tab, which isn't directly useful for a POST endpoint
+    // but demonstrates the button works.
+    alert('This would typically open an API testing tool or documentation for this endpoint.');
   };
 
   return (
@@ -392,53 +411,44 @@ const DeployTab = ({ chatbotId }: { chatbotId: string }) => {
       <CardHeader>
         <CardTitle>Deployment Options</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-8">
         <div>
           <Label>Embed Code</Label>
-          <div className="flex items-center space-x-2">
-            <Input value={embedCode} readOnly className="font-mono text-sm" />
-            <Button variant="outline" size="sm" onClick={copyToClipboard}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copy
+          <div className="flex gap-2">
+            <Input readOnly value={embedCode} className="font-mono" />
+            <Button variant="outline" onClick={() => copyToClipboard(embedCode)}>
+              {isCopied ? 'Copied!' : <Copy className="h-4 w-4" />}
             </Button>
           </div>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             Add this code to your website to embed the chatbot.
           </p>
         </div>
-
         <div>
           <Label>API Endpoint</Label>
-          <div className="flex items-center space-x-2">
-            <Input
-              value={`https://your-domain.com/api/chat?botId=${chatbotId}`}
-              readOnly
-              className="font-mono text-sm"
-            />
-            <Button variant="outline" size="sm">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Test
+          <div className="flex gap-2">
+            <Input readOnly value={apiEndpoint} className="font-mono" />
+            <Button variant="outline" onClick={handleTestApi}>
+              <ExternalLink className="h-4 w-4 mr-2" /> Test
             </Button>
           </div>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             Use this endpoint to integrate the chatbot with your custom application.
           </p>
         </div>
-
         <div>
           <Label>Direct Link</Label>
-          <div className="flex items-center space-x-2">
-            <Input
-              value={`https://your-domain.com/chat/${chatbotId}`}
-              readOnly
-              className="font-mono text-sm"
-            />
-            <Button variant="outline" size="sm">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open
+          <div className="flex gap-2">
+            <Input readOnly value={directLink} className="font-mono" />
+            <Button variant="outline" asChild>
+              <a href={directLink} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4 mr-2" /> Open
+              </a>
             </Button>
           </div>
-          <p className="text-sm text-gray-600 mt-2">Direct link to the chatbot interface.</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Direct link to the chatbot interface.
+          </p>
         </div>
       </CardContent>
     </Card>

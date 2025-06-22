@@ -62,6 +62,7 @@
     const form = dialog.querySelector('.chatbot-form');
     const input = dialog.querySelector('.chatbot-input');
     const messagesContainer = dialog.querySelector('.chatbot-messages');
+    let chatHistory = [];
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
@@ -72,16 +73,21 @@
       addMessage(message, 'user');
       input.value = '';
 
+      // Add to history
+      chatHistory.push(['user', message]);
+
       try {
+        const baseUrl = new URL(document.querySelector('script[src$="/embed.js"]').src).origin;
         // Send message to API
-        const response = await fetch('/api/chat', {
+        const response = await fetch(`${baseUrl}/api/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            botId,
-            message,
+            chatbotId: botId,
+            question: message,
+            chat_history: chatHistory.slice(0, -1),
           }),
         });
 
@@ -90,7 +96,9 @@
         }
 
         const data = await response.json();
-        addMessage(data.message, 'assistant');
+        addMessage(data.response, 'assistant');
+        // Add assistant response to history
+        chatHistory.push(['assistant', data.response]);
       } catch (error) {
         console.error('Error sending message:', error);
         addMessage('Sorry, I encountered an error. Please try again.', 'assistant');

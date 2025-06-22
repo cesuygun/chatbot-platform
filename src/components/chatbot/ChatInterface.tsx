@@ -8,7 +8,6 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
 }
 
 interface ChatInterfaceProps {
@@ -20,6 +19,7 @@ export const ChatInterface = ({ botId, className }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -34,7 +34,6 @@ export const ChatInterface = ({ botId, className }: ChatInterfaceProps) => {
     id: crypto.randomUUID(),
     role,
     content,
-    timestamp: new Date(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,16 +41,28 @@ export const ChatInterface = ({ botId, className }: ChatInterfaceProps) => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = createMessage('user', input);
-    setMessages(prev => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
+
+    // Format chat history for the API
+    const chat_history = newMessages
+      .slice(0, -1)
+      .map(msg => [msg.role === 'user' ? 'Human' : 'Assistant', msg.content]);
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const response = await fetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input, botId }),
+        body: JSON.stringify({
+          question: currentInput,
+          chatbotId: botId,
+          conversationId,
+          chat_history,
+        }),
       });
 
       if (!response.ok) {
@@ -59,8 +70,11 @@ export const ChatInterface = ({ botId, className }: ChatInterfaceProps) => {
       }
 
       const data = await response.json();
-      const assistantMessage = createMessage('assistant', data.message);
+      const assistantMessage = createMessage('assistant', data.response);
       setMessages(prev => [...prev, assistantMessage]);
+      if (data.conversationId) {
+        setConversationId(data.conversationId);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage = createMessage(
@@ -78,9 +92,9 @@ export const ChatInterface = ({ botId, className }: ChatInterfaceProps) => {
       <div className="relative overflow-hidden flex-1 p-4">
         <ScrollArea className="h-full">
           <div className="space-y-4">
-            {messages.map((message, index) => (
+            {messages.map(message => (
               <div
-                key={index}
+                key={message.id}
                 className={`flex w-full ${
                   message.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}

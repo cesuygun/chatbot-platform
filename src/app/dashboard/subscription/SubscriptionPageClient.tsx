@@ -10,7 +10,7 @@ import { Check, ExternalLink } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const SubscriptionPageClient = () => {
-  const { subscription, subscriptionLoading } = useSubscription();
+  const { subscription } = useSubscription();
 
   const handleManageSubscription = () => {
     window.open('/pricing', '_blank');
@@ -63,13 +63,9 @@ const SubscriptionPageClient = () => {
             <CardDescription>Your current subscription details and usage</CardDescription>
           </CardHeader>
           <CardContent>
-            {subscriptionLoading ? (
-              <LoadingSpinner />
-            ) : (
-              <Suspense fallback={<LoadingSpinner />}>
-                <SubscriptionDetails />
-              </Suspense>
-            )}
+            <Suspense fallback={<LoadingSpinner />}>
+              <SubscriptionDetails />
+            </Suspense>
           </CardContent>
         </Card>
 
