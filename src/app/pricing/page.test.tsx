@@ -41,7 +41,7 @@ describe('PricingPlans', () => {
   it('shows monthly prices in Euros by default', () => {
     renderWithProviders(<PricingPlans />);
     expect(screen.getByText('€0')).toBeInTheDocument();
-    expect(screen.getByText('€15')).toBeInTheDocument();
+    expect(screen.getByText('€29')).toBeInTheDocument();
   });
 
   it('shows correct button text for logged-out users', () => {

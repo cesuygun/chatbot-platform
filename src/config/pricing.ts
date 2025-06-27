@@ -1,5 +1,12 @@
 import { PricingPlan } from '@/types/pricing';
 
+// Currency configuration - can be made environment-specific
+export const CURRENCY_CONFIG = {
+  symbol: process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '€',
+  code: process.env.NEXT_PUBLIC_CURRENCY_CODE || 'EUR',
+  exchangeRate: process.env.NEXT_PUBLIC_EXCHANGE_RATE ? parseFloat(process.env.NEXT_PUBLIC_EXCHANGE_RATE) : 1,
+};
+
 export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'free',
