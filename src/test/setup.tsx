@@ -11,6 +11,35 @@ import {
   AppRouterInstance,
 } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
+// Mock Upstash Redis
+vi.mock('@upstash/redis', () => ({
+  Redis: class {
+    async get() { return null; }
+    async set() { return 'OK'; }
+    async incr() { return 1; }
+    async del() { return 1; }
+    async exists() { return 0; }
+    async expire() { return 1; }
+    async ttl() { return -1; }
+  }
+}));
+
+// Mock Upstash Ratelimit
+vi.mock('@upstash/ratelimit', () => ({
+  Ratelimit: class {
+    constructor() {
+      return {
+        limit: async () => ({ success: true, remaining: 10, reset: Date.now() + 60000 })
+      };
+    }
+    static slidingWindow() { 
+      return {
+        limit: async () => ({ success: true, remaining: 10, reset: Date.now() + 60000 })
+      }; 
+    }
+  }
+}));
+
 // Mock Supabase client
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
@@ -36,6 +65,15 @@ const server = setupServer(
   }),
   http.post('/api/chat', () => {
     return HttpResponse.json({ message: 'Test response' });
+  }),
+  http.get('http://localhost:54321/rest/v1/chatbots', ({ request }) => {
+    const url = new URL(request.url);
+    const idParam = url.searchParams.get('id');
+    if (idParam === 'eq.test-bot-id') {
+      return HttpResponse.json([{ id: 'test-bot-id', user_id: 'test-user-id' }]);
+    }
+    // Return empty for non-existent bot
+    return HttpResponse.json([]);
   })
 );
 

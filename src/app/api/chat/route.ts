@@ -9,6 +9,7 @@ import {
   RunnablePassthrough,
 } from '@langchain/core/runnables';
 import { PromptTemplate } from '@langchain/core/prompts';
+import { checkUsageLimits, trackMessageUsage, checkRateLimit } from '@/lib/usage';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,7 @@ const formatChatHistory = (chatHistory: [string, string][]) => {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, chatbotId, conversationId, chat_history, question } = body;
+    const { message, chatbotId, conversationId, chat_history, question, userId } = body;
 
     // Support both old and new message formats
     const userQuestion = message || question;
@@ -51,10 +52,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Message and chatbotId are required' }, { status: 400 });
     }
 
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit(`chat:${chatbotId}`);
+    if (!rateLimitResult.success) {
+      return NextResponse.json({ 
+        error: 'Rate limit exceeded. Please try again later.',
+        response: "I'm sorry, you're sending messages too quickly. Please wait a moment and try again."
+      }, { status: 429 });
+    }
+
     const supabaseClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // Get chatbot details to find the owner
+    const { data: chatbot, error: chatbotError } = await supabaseClient
+      .from('chatbots')
+      .select('user_id')
+      .eq('id', chatbotId)
+      .single();
+
+    if (chatbotError || !chatbot) {
+      return NextResponse.json({ error: 'Chatbot not found' }, { status: 404 });
+    }
+
+    // Check usage limits if userId is provided (for authenticated users)
+    if (userId) {
+      const usageCheck = await checkUsageLimits(userId, chatbotId);
+      if (!usageCheck.allowed) {
+        return NextResponse.json({ 
+          error: usageCheck.reason,
+          response: `I'm sorry, but ${usageCheck.reason?.toLowerCase()}. Please upgrade your plan to continue chatting.`
+        }, { status: 403 });
+      }
+    }
 
     // For now, return a mock response if no OpenAI key is configured
     if (!process.env.OPENAI_API_KEY) {
@@ -109,6 +141,16 @@ export async function POST(req: NextRequest) {
         question: userQuestion,
         chat_history: chat_history || [],
     });
+
+    // Track message usage if userId is provided
+    if (userId && conversationId) {
+      try {
+        await trackMessageUsage(userId, chatbotId, conversationId);
+      } catch (error) {
+        console.error('Failed to track message usage:', error);
+        // Don't fail the request if usage tracking fails
+      }
+    }
 
     // Return in the new format expected by the frontend
     return NextResponse.json({ 

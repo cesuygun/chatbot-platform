@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: userId,
         stripe_subscription_id: subscription.id,
-        plan_name: subscription.items.data[0].price.lookup_key || 'pro', // fallback to 'pro'
+        plan_id: subscription.items.data[0].price.lookup_key || 'pro', // fallback to 'pro'
         status: subscription.status,
         current_period_end: new Date((subscription as any).current_period_end * 1000),
       });
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase
       .from('subscriptions')
       .update({
-        plan_name: stripeSubscription.items.data[0].price.lookup_key || 'pro',
+        plan_id: stripeSubscription.items.data[0].price.lookup_key || 'pro',
         status: stripeSubscription.status,
         current_period_end: new Date((stripeSubscription as any).current_period_end * 1000),
       })
