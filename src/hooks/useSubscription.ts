@@ -3,14 +3,17 @@ import { useAuth } from '@/contexts/auth/AuthContext';
 import { Chatbot } from '@/types/chatbot';
 
 interface Plan {
-  id: string;
   name: string;
-  chatbot_limit: number;
+  interval: string;
+  amount: number;
+  chatbot_limit?: number; // Optional for backward compatibility
 }
 
 interface Subscription {
   id: string;
   status: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
   plan: Plan;
 }
 

@@ -16,31 +16,6 @@ const SubscriptionPageClient = () => {
     window.open('/pricing', '_blank');
   };
 
-  const handleCancelSubscription = async () => {
-    if (!subscription) return;
-
-    try {
-      const response = await fetch('/api/stripe/cancel-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subscriptionId: subscription.id,
-        }),
-      });
-
-      if (response.ok) {
-        // Refresh the page to show updated subscription status
-        window.location.reload();
-      } else {
-        console.error('Failed to cancel subscription');
-      }
-    } catch (error) {
-      console.error('Error canceling subscription:', error);
-    }
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -81,12 +56,6 @@ const SubscriptionPageClient = () => {
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View All Plans
               </Button>
-
-              {subscription && subscription.status === 'active' && (
-                <Button onClick={handleCancelSubscription} variant="destructive" className="flex-1">
-                  Cancel Subscription
-                </Button>
-              )}
             </div>
 
             <div className="text-sm text-muted-foreground">

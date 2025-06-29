@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getStripe, subscriptionSchema, formatStripeDate } from '@/lib/stripe';
+import { getStripe, subscriptionSchema, formatStripeDate, getPlanFromPriceId } from '@/lib/stripe';
 
 export async function GET(_request: NextRequest) {
   try {
@@ -42,7 +42,25 @@ export async function GET(_request: NextRequest) {
     }
 
     const subscription = subscriptions.data[0];
+
+    // Get the price details from Stripe
     const price = await stripe.prices.retrieve(subscription.items.data[0].price.id);
+    
+    // Fetch plan info from Supabase using the Stripe price ID
+    const { data: planData, error: planError } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('stripe_price_id', price.id)
+      .maybeSingle();
+
+    // Fallback if plan not found
+    const plan = planData || {
+      name: 'Unknown',
+      interval: price.recurring?.interval || 'month',
+      amount: price.unit_amount || 0,
+      chatbot_limit: 1,
+      message_limit: 100,
+    };
 
     const subscriptionData = {
       id: subscription.id,
@@ -50,15 +68,18 @@ export async function GET(_request: NextRequest) {
       current_period_end: subscription.items.data[0].current_period_end,
       cancel_at_period_end: subscription.cancel_at_period_end,
       plan: {
-        name: price.nickname || 'Unknown Plan',
-        interval: price.recurring?.interval || 'month',
-        amount: price.unit_amount || 0,
+        name: plan.name,
+        interval: plan.interval,
+        amount: plan.price,
+        chatbot_limit: plan.chatbot_limit,
+        message_limit: plan.message_limit,
       },
     };
 
     // Validate subscription data
     const validationResult = subscriptionSchema.safeParse(subscriptionData);
     if (!validationResult.success) {
+      console.error('Subscription validation failed:', validationResult.error);
       throw new Error('Invalid subscription data');
     }
 

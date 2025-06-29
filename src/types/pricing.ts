@@ -7,18 +7,29 @@ export interface PricingFeature {
   included: boolean;
 }
 
+export interface StripePrice {
+  id: string;
+  amount: number;
+  currency: string;
+  interval: 'month' | 'year';
+  nickname?: string;
+}
+
 export interface PricingPlan {
-  id: PricingTier;
+  id?: PricingTier;
   name: string;
   description: string;
-  price: number;
-  interval: 'month' | 'year';
-  features: PricingFeature[];
-  limits: {
+  price?: number;
+  interval?: 'month' | 'year';
+  features: PricingFeature[] | string[];
+  limits?: {
     messagesPerMonth: number;
     chatbots: number;
     teamMembers: number;
     customDomains: number;
+  };
+  prices?: {
+    [interval: string]: StripePrice;
   };
 }
 

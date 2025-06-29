@@ -44,6 +44,7 @@ export async function GET(_request: NextRequest) {
         status: invoice.status,
         created: invoice.created,
         invoice_pdf: invoice.invoice_pdf,
+        currency: invoice.currency,
       };
 
       const validationResult = invoiceSchema.safeParse(invoiceData);
