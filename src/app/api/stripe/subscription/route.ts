@@ -70,7 +70,7 @@ export async function GET(_request: NextRequest) {
       plan: {
         name: plan.name,
         interval: plan.interval,
-        amount: plan.amount ?? plan.price, 
+        amount: typeof plan.amount === 'number' ? plan.amount : (typeof plan.price === 'number' ? plan.price : (typeof price.unit_amount === 'number' ? price.unit_amount : 0)),
         chatbot_limit: plan.chatbot_limit,
         message_limit: plan.message_limit,
       },
