@@ -29,7 +29,6 @@ export function SubscriptionDetails() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [portalLoading, setPortalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelSuccess, setCancelSuccess] = useState(false);
   const [resumeLoading, setResumeLoading] = useState(false);
@@ -100,37 +99,6 @@ export function SubscriptionDetails() {
       console.error('Cancel subscription error:', err);
     } finally {
       setCancelLoading(false);
-    }
-  };
-
-  const handleOpenPortal = async () => {
-    setPortalLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch('/api/stripe/customer-portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create customer portal session');
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No portal URL received');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to open customer portal';
-      setError(errorMessage);
-      console.error('Customer portal error:', err);
-    } finally {
-      setPortalLoading(false);
     }
   };
 

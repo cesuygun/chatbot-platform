@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getStripe, subscriptionSchema, formatStripeDate, getPlanFromPriceId } from '@/lib/stripe';
+import { getStripe, subscriptionSchema, formatStripeDate } from '@/lib/stripe';
 
 export async function GET(_request: NextRequest) {
   try {
@@ -47,7 +47,7 @@ export async function GET(_request: NextRequest) {
     const price = await stripe.prices.retrieve(subscription.items.data[0].price.id);
     
     // Fetch plan info from Supabase using the Stripe price ID
-    const { data: planData, error: planError } = await supabase
+    const { data: planData } = await supabase
       .from('plans')
       .select('*')
       .eq('stripe_price_id', price.id)
@@ -70,7 +70,7 @@ export async function GET(_request: NextRequest) {
       plan: {
         name: plan.name,
         interval: plan.interval,
-        amount: plan.price,
+        amount: plan.amount,
         chatbot_limit: plan.chatbot_limit,
         message_limit: plan.message_limit,
       },
